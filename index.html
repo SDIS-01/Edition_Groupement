@@ -9,34 +9,18 @@
   :root{
     --bleu:#002395;
     --bleu-clair:#e8ecf7;
-    --vert:#9BBB59;
-    --jaune:#FFCC00;
-    --orange:#F79646;
-    --rouge:#C0504D;
-    --gris:#4A4A4A;
     --trait:#d6dae6;
     --texte:#1c1c1c;
     --attenue:#7a7f8c;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{
-    font-family:Tahoma,Geneva,Verdana,sans-serif;
-    font-size:13px;
-    color:var(--texte);
-    background:#fff;
-  }
+  body{font-family:Tahoma,Geneva,Verdana,sans-serif;font-size:13px;color:var(--texte);background:#fff;}
   h1,h2,h3{color:var(--bleu);margin:0;font-weight:bold;}
 
-  /* ---------- Barre de commandes ---------- */
-  .barre{
-    position:sticky;top:0;z-index:20;
-    background:#fff;
-    border-bottom:2px solid var(--bleu);
-    padding:10px 14px 8px;
-  }
+  .barre{position:sticky;top:0;z-index:20;background:#fff;border-bottom:2px solid var(--bleu);padding:10px 14px 8px;}
   .barre-haut{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-  .barre-haut h1{font-size:16px;letter-spacing:.2px;}
+  .barre-haut h1{font-size:16px;}
   .grandir{flex:1;}
   .filtres{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-top:8px;}
   .champ{display:flex;flex-direction:column;gap:3px;}
@@ -50,24 +34,18 @@
   input:focus,select:focus,button:focus{outline:2px solid var(--bleu);outline-offset:1px;}
   .cases{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .cases label{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;}
-  button{
-    font-family:inherit;font-size:12px;padding:5px 11px;cursor:pointer;
-    border:1px solid var(--bleu);border-radius:3px;background:var(--bleu);color:#fff;
-  }
+  button{font-family:inherit;font-size:12px;padding:5px 11px;cursor:pointer;
+    border:1px solid var(--bleu);border-radius:3px;background:var(--bleu);color:#fff;}
   button.secondaire{background:#fff;color:var(--bleu);}
   button:hover{opacity:.88;}
 
-  /* ---------- Synthèse ---------- */
   .contenu{padding:14px;}
   .entete-grp{border-left:4px solid var(--bleu);padding:2px 0 2px 10px;margin-bottom:10px;}
   .entete-grp h2{font-size:17px;}
   .meta{font-size:12px;color:var(--attenue);margin-top:3px;}
   .meta b{color:var(--texte);font-weight:normal;}
   .compteurs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-  .compteur{
-    border:1px solid var(--trait);border-radius:3px;
-    padding:6px 12px;min-width:104px;background:#fbfcfe;
-  }
+  .compteur{border:1px solid var(--trait);border-radius:3px;padding:6px 12px;min-width:104px;background:#fbfcfe;}
   .compteur .n{font-size:20px;color:var(--bleu);font-weight:bold;line-height:1.1;}
   .compteur .l{font-size:11px;color:var(--attenue);}
   .repartition{display:flex;height:14px;border-radius:2px;overflow:hidden;margin-bottom:4px;border:1px solid var(--trait);}
@@ -76,12 +54,8 @@
   .legende span{display:flex;align-items:center;gap:4px;}
   .puce{width:9px;height:9px;border-radius:2px;display:inline-block;}
 
-  /* ---------- Arborescence ---------- */
   .bloc-projet{border:1px solid var(--trait);border-radius:3px;margin-bottom:9px;overflow:hidden;}
-  .ligne{
-    display:flex;align-items:baseline;gap:8px;
-    padding:6px 9px;border-top:1px solid #eef0f6;
-  }
+  .ligne{display:flex;align-items:baseline;gap:8px;padding:6px 9px;border-top:1px solid #eef0f6;}
   .bloc-projet > .ligne:first-child{border-top:none;}
   .ligne.projet{background:var(--bleu-clair);}
   .ligne.projet .titre{font-weight:bold;color:var(--bleu);font-size:13px;}
@@ -93,55 +67,34 @@
   .titre{flex:1;min-width:0;}
   .repli{cursor:pointer;user-select:none;color:var(--bleu);width:12px;text-align:center;flex:0 0 12px;}
   .repli.vide{visibility:hidden;}
-  .pastille{
-    flex:0 0 auto;font-size:11px;padding:1px 7px;border-radius:9px;
-    color:#fff;white-space:nowrap;
-  }
+  .pastille{flex:0 0 auto;font-size:11px;padding:1px 7px;border-radius:9px;color:#fff;white-space:nowrap;}
   .pastille.claire{color:#3a3000;}
   .info{flex:0 0 auto;font-size:11px;color:var(--attenue);white-space:nowrap;}
-  .marque{
-    flex:0 0 auto;font-size:10px;padding:0 5px;border-radius:2px;
-    background:var(--bleu);color:#fff;
-  }
   .vide-etat{padding:26px 4px;color:var(--attenue);}
-  .avertissement{
-    background:#fff8e1;border:1px solid #ffcc00;border-radius:3px;
-    padding:7px 10px;margin-bottom:10px;font-size:12px;
-  }
+  .avertissement{background:#fff8e1;border:1px solid #ffcc00;border-radius:3px;
+    padding:7px 10px;margin-bottom:10px;font-size:12px;}
 
-  /* ---------- Réglages ---------- */
-  .reglages{
-    position:fixed;inset:0;background:rgba(0,0,0,.35);
-    display:none;align-items:center;justify-content:center;z-index:50;
-  }
+  .reglages{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:50;}
   .reglages.ouvert{display:flex;}
-  .reglages-boite{
-    background:#fff;border-radius:4px;padding:18px;width:min(430px,92vw);
-    box-shadow:0 8px 30px rgba(0,0,0,.25);
-  }
+  .reglages-boite{background:#fff;border-radius:4px;padding:18px;width:min(430px,92vw);
+    box-shadow:0 8px 30px rgba(0,0,0,.25);max-height:92vh;overflow:auto;}
   .reglages-boite h3{font-size:14px;margin-bottom:10px;}
   .reglages-boite .champ{margin-bottom:9px;}
   .reglages-boite input[type=text]{width:100%;}
   .reglages-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
   .aide{font-size:11px;color:var(--attenue);margin-top:2px;}
 
-  /* ---------- Impression ---------- */
   .entete-impression{display:none;}
-  @page{size:A4 portrait;margin:14mm 12mm 14mm 12mm;}
+  @page{size:A4 portrait;margin:14mm 12mm;}
   @media print{
     .barre,.reglages,.repli{display:none !important;}
     .contenu{padding:0;}
     body{font-size:10.5pt;}
-    .entete-impression{
-      display:block;border-bottom:2px solid var(--bleu);
-      padding-bottom:5px;margin-bottom:10px;
-    }
+    .entete-impression{display:block;border-bottom:2px solid var(--bleu);padding-bottom:5px;margin-bottom:10px;}
     .entete-impression .t{color:var(--bleu);font-weight:bold;font-size:13pt;}
     .entete-impression .d{font-size:9pt;color:var(--attenue);}
-    .bloc-projet{break-inside:avoid;page-break-inside:avoid;}
-    .ligne{break-inside:avoid;page-break-inside:avoid;}
-    .pastille{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .ligne.projet,.repartition div,.puce,.marque{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .bloc-projet,.ligne{break-inside:avoid;page-break-inside:avoid;}
+    .pastille,.ligne.projet,.repartition div,.puce{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .section-impression{page-break-before:always;}
     .section-impression:first-of-type{page-break-before:auto;}
   }
@@ -172,26 +125,18 @@
       <select id="selCollaborateur"><option value="">Tous</option></select>
     </div>
     <div class="champ">
-      <span>Niveaux</span>
-      <div class="cases">
-        <label><input type="checkbox" id="nvProjets" checked> Projets</label>
-        <label><input type="checkbox" id="nvActions" checked> Actions MEO</label>
-        <label><input type="checkbox" id="nvTaches" checked> Tâches</label>
-      </div>
+      <span>Périmètre</span>
+      <select id="selPerimetre">
+        <option value="portage">Projets portés par le groupement</option>
+        <option value="implication" selected>Tout ce qui implique le groupement : projets, actions, tâches</option>
+      </select>
     </div>
     <div class="champ">
-      <span>Statuts</span>
+      <span>Inclure</span>
       <div class="cases">
-        <label><input type="checkbox" class="stat" value="A engager" checked> À engager</label>
-        <label><input type="checkbox" class="stat" value="En cours" checked> En cours</label>
-        <label><input type="checkbox" class="stat" value="Terminé" checked> Terminé</label>
-        <label><input type="checkbox" class="stat" value="Interrompu" checked> Interrompu</label>
-      </div>
-    </div>
-    <div class="champ">
-      <span>Affichage</span>
-      <div class="cases">
-        <label><input type="checkbox" id="chkContexte" checked> Afficher les parents non rattachés</label>
+        <label><input type="checkbox" id="chkTermine" checked> Terminé</label>
+        <label><input type="checkbox" id="chkInterrompu" checked> Interrompu</label>
+        <label><input type="checkbox" id="chkMecReste"> MEC 2023 : reste à faire seulement</label>
       </div>
     </div>
   </div>
@@ -204,22 +149,12 @@
 <div class="reglages" id="panneauReglages">
   <div class="reglages-boite">
     <h3>Réglages</h3>
-    <div class="champ">
-      <span>Table des groupements</span>
-      <input type="text" id="tGroupement">
-    </div>
-    <div class="champ">
-      <span>Table des collaborateurs</span>
-      <input type="text" id="tCollaborateur">
-    </div>
-    <div class="champ">
-      <span>Table des projets et actions</span>
-      <input type="text" id="tAction">
-    </div>
-    <div class="champ">
-      <span>Table des tâches</span>
-      <input type="text" id="tTache">
-    </div>
+    <div class="champ"><span>Table des groupements</span><input type="text" id="tGroupement"></div>
+    <div class="champ"><span>Table des collaborateurs</span><input type="text" id="tCollaborateur"></div>
+    <div class="champ"><span>Table des projets et actions</span><input type="text" id="tAction"></div>
+    <div class="champ"><span>Table des tâches</span><input type="text" id="tTache"></div>
+    <div class="champ"><span>Table MEC 2023</span><input type="text" id="tMec"></div>
+    <div class="champ"><span>Table PAPRIPACT</span><input type="text" id="tPapripact"></div>
     <div class="champ">
       <span>Rattachement au groupement</span>
       <select id="mode">
@@ -246,9 +181,14 @@ const REGLAGES_DEFAUT = {
   tCollaborateur: "Collaborateur",
   tAction: "Liste_Action_MEO",
   tTache: "Liste_Tache",
+  tMec: "MEC_2023",
+  tPapripact: "PAPRIPACT",
   mode: "listes"
 };
 let reglages = Object.assign({}, REGLAGES_DEFAUT);
+
+const CLES_MEC = ["ID_MEC_2023", "MEC_2023", "Recommandation", "Libellé", "Libelle"];
+const CLES_PAP = ["Action_PAPRIPACT", "ID_PAPRIPACT", "Action", "Libellé", "Libelle"];
 
 /* =========================================================
    Outils
@@ -261,25 +201,6 @@ const txt = v => (v === null || v === undefined) ? "" : String(v).trim();
 
 function echapper(s){
   return txt(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-
-/* Les colId Grist ne sont pas les libellés : on cherche par nom normalisé. */
-function creerAcces(colonnes){
-  const index = {};
-  colonnes.forEach(c => { index[norm(c)] = c; });
-  return function(ligne, ...noms){
-    for (const n of noms){
-      const c = index[norm(n)];
-      if (c !== undefined && ligne[c] !== undefined) return ligne[c];
-    }
-    return undefined;
-  };
-}
-
-function existeColonne(colonnes, ...noms){
-  const index = {};
-  colonnes.forEach(c => { index[norm(c)] = c; });
-  return noms.some(n => index[norm(n)] !== undefined);
 }
 
 function enLignes(table){
@@ -300,7 +221,7 @@ function formatDate(v){
   let d;
   if (typeof v === "number") d = new Date(v * 1000);
   else if (v instanceof Date) d = v;
-  else { d = new Date(v); }
+  else d = new Date(v);
   if (isNaN(d.getTime())) return "";
   const j = String(d.getUTCDate()).padStart(2, "0");
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -311,7 +232,7 @@ function rempli(v){
   return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length <= 1));
 }
 
-/* Liste de références Grist : ['L', 3, 8] ou liste de libellés. */
+/* Liste de références : ['L', 3, 8], ou liste de libellés. */
 function listeRef(v){
   if (Array.isArray(v)) return v[0] === "L" ? v.slice(1) : v.slice();
   if (v === null || v === undefined || v === "") return [];
@@ -331,250 +252,460 @@ function couleurAvancement(pourcent, interrompu){
 }
 
 /* =========================================================
-   État global
+   Accès aux tables
+   Les colId Grist ne sont pas les libellés affichés : on cherche
+   par nom normalisé, et on résout les colonnes de type Référence.
    ========================================================= */
 const D = {
-  groupements: [], gAcces: null, gCols: [],
-  collaborateurs: [], cAcces: null, cCols: [],
-  actions: [], aAcces: null, aCols: [], aFacteur: 100,
-  taches: [], tAcces: null, tCols: [], tFacteur: 100,
+  ctx: {},        // tableId -> contexte de table
+  refs: {},       // tableId -> colId -> { cible, visible, liste }
+  absentes: [],
+  metaOk: false,
   pretes: false
 };
-let groupementCourant = null;
-let replies = new Set();
+
+function creerContexte(tableId, table){
+  const { lignes, colonnes } = enLignes(table);
+  const index = {};
+  colonnes.forEach(c => { index[norm(c)] = c; });
+  return {
+    tableId, lignes, colonnes, index,
+    parId: new Map(lignes.map(l => [l.id, l])),
+    col(...noms){
+      for (const n of noms){
+        const c = index[norm(n)];
+        if (c !== undefined) return c;
+      }
+      return null;
+    },
+    brut(ligne, ...noms){
+      const c = this.col(...noms);
+      return c === null ? undefined : ligne[c];
+    }
+  };
+}
+
+const ctxDe = tableId => D.ctx[tableId] || creerContexte(tableId, {});
+
+/* Valeur affichable d'une colonne, références résolues. */
+function texte(tableId, ligne, ...noms){
+  const ctx = D.ctx[tableId];
+  if (!ctx || !ligne) return "";
+  const col = ctx.col(...noms);
+  if (col === null) return "";
+  return resoudreValeur(tableId, col, ligne[col], 0);
+}
+
+function resoudreValeur(tableId, col, v, profondeur){
+  if (v === null || v === undefined || v === "") return "";
+  const info = (D.refs[tableId] || {})[col];
+  if (!info || profondeur > 3){
+    if (Array.isArray(v)) return v[0] === "L" ? v.slice(1).map(txt).join(", ") : v.map(txt).join(", ");
+    return typeof v === "object" ? "" : String(v).trim();
+  }
+  if (info.liste){
+    return listeRef(v).map(r => libelleCible(info, r, profondeur)).filter(Boolean).join(", ");
+  }
+  if (typeof v === "number") return libelleCible(info, v, profondeur);
+  return String(v).trim();
+}
+
+function libelleCible(info, ref, profondeur){
+  if (typeof ref !== "number") return txt(ref);
+  const ctx = D.ctx[info.cible];
+  if (!ctx) return String(ref);
+  const ligne = ctx.parId.get(ref);
+  if (!ligne) return "";
+  if (info.visible && ligne[info.visible] !== undefined){
+    const r = resoudreValeur(info.cible, info.visible, ligne[info.visible], profondeur + 1);
+    if (r) return r;
+  }
+  /* Pas de colonne d'affichage exploitable : premier champ texte de la ligne. */
+  for (const c of ctx.colonnes){
+    if (c === "id" || c === "manualSort") continue;
+    const v = ligne[c];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return String(ref);
+}
 
 /* =========================================================
    Chargement
    ========================================================= */
+async function fetchOptionnel(nom){
+  try {
+    return await grist.docApi.fetchTable(nom);
+  } catch (err){
+    return null;
+  }
+}
+
 async function charger(){
-  const [g, c, a, t] = await Promise.all([
-    grist.docApi.fetchTable(reglages.tGroupement),
-    grist.docApi.fetchTable(reglages.tCollaborateur),
-    grist.docApi.fetchTable(reglages.tAction),
-    grist.docApi.fetchTable(reglages.tTache)
-  ]);
+  D.ctx = {}; D.refs = {}; D.absentes = []; D.metaOk = false;
 
-  const G = enLignes(g), C = enLignes(c), A = enLignes(a), T = enLignes(t);
+  const requises = [reglages.tGroupement, reglages.tCollaborateur, reglages.tAction, reglages.tTache];
+  const optionnelles = [reglages.tMec, reglages.tPapripact];
 
-  D.groupements = G.lignes; D.gCols = G.colonnes; D.gAcces = creerAcces(G.colonnes);
-  D.collaborateurs = C.lignes; D.cCols = C.colonnes; D.cAcces = creerAcces(C.colonnes);
-  D.actions = A.lignes; D.aCols = A.colonnes; D.aAcces = creerAcces(A.colonnes);
-  D.taches = T.lignes; D.tCols = T.colonnes; D.tAcces = creerAcces(T.colonnes);
+  const tablesRequises = await Promise.all(requises.map(n => grist.docApi.fetchTable(n)));
+  requises.forEach((n, i) => { D.ctx[n] = creerContexte(n, tablesRequises[i]); });
 
-  D.aFacteur = facteurAvancement(D.actions, D.aAcces);
-  D.tFacteur = facteurAvancement(D.taches, D.tAcces);
+  const tablesOption = await Promise.all(optionnelles.map(fetchOptionnel));
+  optionnelles.forEach((n, i) => {
+    if (tablesOption[i]) D.ctx[n] = creerContexte(n, tablesOption[i]);
+    else { D.absentes.push(n); D.ctx[n] = creerContexte(n, {}); }
+  });
+
+  await chargerMetadonnees();
+  await chargerTablesCibles();
+
   D.pretes = true;
 }
 
+/* Métadonnées : type réel de chaque colonne et colonne d'affichage des références. */
+async function chargerMetadonnees(){
+  try {
+    const [mt, mc] = await Promise.all([
+      grist.docApi.fetchTable("_grist_Tables"),
+      grist.docApi.fetchTable("_grist_Tables_column")
+    ]);
+    const tables = enLignes(mt).lignes;
+    const colonnes = enLignes(mc).lignes;
+    const nomTable = new Map(tables.map(l => [l.id, l.tableId]));
+    const colParId = new Map(colonnes.map(l => [l.id, l]));
+
+    colonnes.forEach(c => {
+      const t = nomTable.get(c.parentId);
+      if (!t) return;
+      const m = /^Ref(List)?:(.+)$/.exec(String(c.type || ""));
+      if (!m) return;
+      let visible = null;
+      if (c.visibleCol && colParId.has(c.visibleCol)) visible = colParId.get(c.visibleCol).colId;
+      if (!D.refs[t]) D.refs[t] = {};
+      D.refs[t][c.colId] = { cible: m[2], visible, liste: !!m[1] };
+    });
+    D.metaOk = true;
+  } catch (err){
+    D.metaOk = false;
+  }
+}
+
+/* Charge les tables visées par les références, pour pouvoir afficher leurs libellés. */
+async function chargerTablesCibles(){
+  for (let passe = 0; passe < 2; passe++){
+    const manquantes = new Set();
+    Object.keys(D.ctx).forEach(t => {
+      const m = D.refs[t] || {};
+      Object.keys(m).forEach(c => {
+        const cible = m[c].cible;
+        if (cible && !D.ctx[cible] && cible.indexOf("_grist") !== 0) manquantes.add(cible);
+      });
+    });
+    if (!manquantes.size) return;
+    const noms = Array.from(manquantes);
+    const tables = await Promise.all(noms.map(fetchOptionnel));
+    noms.forEach((n, i) => { if (tables[i]) D.ctx[n] = creerContexte(n, tables[i]); });
+  }
+}
+
 /* L'avancement est stocké en fraction (0,75) ou en points (75) selon les tables. */
-function facteurAvancement(lignes, acces){
+function facteurAvancement(tableId){
+  const ctx = ctxDe(tableId);
   let max = 0;
-  lignes.forEach(l => {
-    const v = Number(acces(l, "Avancement"));
+  ctx.lignes.forEach(l => {
+    const v = Number(ctx.brut(l, "Avancement"));
     if (!isNaN(v)) max = Math.max(max, v);
   });
   return max <= 1 ? 100 : 1;
 }
 
 /* =========================================================
-   Lecture d'une ligne
+   Lecture des lignes
    ========================================================= */
+function etatStatut(statutBrut, pourcent, interrompu){
+  if (interrompu) return "Interrompu";
+  if (statutBrut) return statutBrut;
+  return pourcent >= 100 ? "Terminé" : pourcent > 0 ? "En cours" : "A engager";
+}
+
 function lireAction(ligne){
-  const a = D.aAcces;
-  const brut = Number(a(ligne, "Avancement"));
-  const pourcent = isNaN(brut) ? 0 : Math.round(brut * D.aFacteur);
-  const statutBrut = txt(a(ligne, "Statut"));
+  const T = reglages.tAction, ctx = ctxDe(T);
+  const brut = Number(ctx.brut(ligne, "Avancement"));
+  const pourcent = isNaN(brut) ? 0 : Math.round(brut * facteurs.action);
+  const statutBrut = texte(T, ligne, "Statut");
   const interrompu = norm(statutBrut) === "interrompu"
-    || rempli(a(ligne, "Date_Suspension", "Date_suspension"))
-    || rempli(a(ligne, "Date_Abandon"));
+    || rempli(ctx.brut(ligne, "Date_Suspension", "Date_suspension"))
+    || rempli(ctx.brut(ligne, "Date_Abandon"));
   return {
     id: ligne.id,
-    cleProjet: txt(a(ligne, "ID_Projet_Action_AV")),
-    cleAction: txt(a(ligne, "ID_Action_MEO")),
-    nature: txt(a(ligne, "Nature")).toUpperCase(),
-    porteur: txt(a(ligne, "Porteur")),
-    groupement: txt(a(ligne, "Groupement")),
-    priorite: txt(a(ligne, "Priorité", "Priorite")),
-    echeance: formatDate(a(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
-    statut: interrompu ? "Interrompu" : (statutBrut || (pourcent >= 100 ? "Terminé" : pourcent > 0 ? "En cours" : "A engager")),
+    cleProjet: texte(T, ligne, "ID_Projet_Action_AV"),
+    cleAction: texte(T, ligne, "ID_Action_MEO"),
+    nature: texte(T, ligne, "Nature").toUpperCase(),
+    porteur: texte(T, ligne, "Porteur"),
+    groupement: texte(T, ligne, "Groupement"),
+    echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
+    statut: etatStatut(statutBrut, pourcent, interrompu),
     pourcent, interrompu
   };
 }
 
 function lireTache(ligne){
-  const t = D.tAcces;
-  const brut = Number(t(ligne, "Avancement"));
-  const pourcent = isNaN(brut) ? 0 : Math.round(brut * D.tFacteur);
-  const statutBrut = txt(t(ligne, "Statut"));
+  const T = reglages.tTache, ctx = ctxDe(T);
+  const brut = Number(ctx.brut(ligne, "Avancement"));
+  const pourcent = isNaN(brut) ? 0 : Math.round(brut * facteurs.tache);
+  const statutBrut = texte(T, ligne, "Statut");
   const interrompu = norm(statutBrut) === "interrompu"
-    || rempli(t(ligne, "Date_suspension", "Date_Suspension"))
-    || rempli(t(ligne, "Date_Abandon"));
+    || rempli(ctx.brut(ligne, "Date_suspension", "Date_Suspension"))
+    || rempli(ctx.brut(ligne, "Date_Abandon"));
   return {
     id: ligne.id,
-    cleProjet: txt(t(ligne, "ID_Projet_Action_AV")),
-    cleAction: txt(t(ligne, "ID_Action_MEO")),
-    libelle: txt(t(ligne, "ID_Tâche", "ID_Tache")),
-    porteur: txt(t(ligne, "Porteur")),
-    groupement: txt(t(ligne, "Groupement")),
-    echeance: formatDate(t(ligne, "Ech_Prev", "Ech.prev")),
-    statut: interrompu ? "Interrompu" : (statutBrut || (pourcent >= 100 ? "Terminé" : pourcent > 0 ? "En cours" : "A engager")),
+    cleProjet: texte(T, ligne, "ID_Projet_Action_AV"),
+    cleAction: texte(T, ligne, "ID_Action_MEO"),
+    libelle: texte(T, ligne, "ID_Tâche", "ID_Tache"),
+    porteur: texte(T, ligne, "Porteur"),
+    groupement: texte(T, ligne, "Groupement"),
+    echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev")),
+    statut: etatStatut(statutBrut, pourcent, interrompu),
     pourcent, interrompu
   };
 }
 
+/* Lecture commune aux tables MEC 2023 et PAPRIPACT. */
+function lireAnnexe(tableId, ligne, facteur, clesLibelle){
+  const ctx = ctxDe(tableId);
+  const brut = Number(ctx.brut(ligne, "Avancement"));
+  const pourcent = isNaN(brut) ? 0 : Math.round(brut * facteur);
+  const statutBrut = texte(tableId, ligne, "Statut");
+  const interrompu = norm(statutBrut) === "interrompu"
+    || rempli(ctx.brut(ligne, "Date_suspension", "Date_Suspension"))
+    || rempli(ctx.brut(ligne, "Date_Abandon"));
+  let libelle = "";
+  for (const k of clesLibelle){
+    const v = texte(tableId, ligne, k);
+    if (v){ libelle = v; break; }
+  }
+  return {
+    id: ligne.id,
+    libelle: libelle || ("Ligne " + ligne.id),
+    categorie: texte(tableId, ligne, "Reccomandation_Rappel", "Recommandation_Rappel", "Catégorie", "Categorie", "Type"),
+    porteur: texte(tableId, ligne, "Porteur"),
+    groupement: texte(tableId, ligne, "Groupement"),
+    echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
+    statut: etatStatut(statutBrut, pourcent, interrompu),
+    pourcent, interrompu
+  };
+}
+
+let facteurs = { action: 100, tache: 100, mec: 100, pap: 100 };
+
 /* =========================================================
    Rattachement des lignes au groupement
    ========================================================= */
-function resoudre(valeur, lignes, acces, clesLibelle){
+function resoudre(tableGroupement, ligneGroupement, noms, tableCible, clesLibelle){
+  const ctxG = ctxDe(tableGroupement);
+  const col = ctxG.col(...noms);
+  if (col === null) return { trouves: [], colonneAbsente: true };
+  const valeur = ligneGroupement[col];
   const refs = listeRef(valeur);
-  if (!refs.length) return [];
-  const parId = new Map(lignes.map(l => [l.id, l]));
+  if (!refs.length) return { trouves: [], colonneAbsente: false };
+
+  const ctxC = ctxDe(tableCible);
+  const info = (D.refs[tableGroupement] || {})[col];
+
+  /* Cas normal : la colonne référence directement les lignes de la table cible. */
+  if (info && info.cible === tableCible){
+    const trouves = [];
+    refs.forEach(r => {
+      const l = typeof r === "number" ? ctxC.parId.get(r) : null;
+      if (l) trouves.push(l);
+    });
+    if (trouves.length) return { trouves, colonneAbsente: false };
+  }
+
+  /* Repli : rapprochement sur le libellé. */
   const parLibelle = new Map();
-  lignes.forEach(l => {
-    for (const k of clesLibelle){
-      const v = txt(acces(l, k));
+  ctxC.lignes.forEach(l => {
+    clesLibelle.forEach(k => {
+      const v = texte(tableCible, l, k);
       if (v){
         if (!parLibelle.has(v)) parLibelle.set(v, []);
         parLibelle.get(v).push(l);
       }
-    }
+    });
   });
   const trouves = [];
   refs.forEach(r => {
-    if (typeof r === "number"){
-      const l = parId.get(r);
-      if (l) trouves.push(l);
-    } else {
-      const liste = parLibelle.get(txt(r));
-      if (liste) liste.forEach(l => trouves.push(l));
-    }
+    const etiquette = typeof r === "number" ? libelleCible(info || { cible: tableCible }, r, 0) : txt(r);
+    const liste = parLibelle.get(etiquette);
+    if (liste) liste.forEach(l => trouves.push(l));
   });
-  return trouves;
+  return { trouves, colonneAbsente: false };
 }
 
-function rattachements(ligneGroupement, code){
-  const listesDisponibles =
-    existeColonne(D.gCols, "Liste_ID_Projet_Action_AV") ||
-    existeColonne(D.gCols, "Liste_ID_Action_MEO") ||
-    existeColonne(D.gCols, "Liste_Tache_ID_Tâche", "Liste_Tache_ID_Tache");
-
-  const parListes = reglages.mode === "listes" && listesDisponibles;
-
+function rattachements(ligneGroupement, code, libelleGroupement){
+  const TG = reglages.tGroupement;
   const projets = new Set(), actions = new Set(), taches = new Set();
+  const mec = new Set(), papripact = new Set();
+  let parListes = false;
 
-  if (parListes){
-    const g = D.gAcces;
-    resoudre(g(ligneGroupement, "Liste_ID_Projet_Action_AV"), D.actions, D.aAcces, ["ID_Projet_Action_AV"])
-      .forEach(l => projets.add(l.id));
-    resoudre(g(ligneGroupement, "Liste_ID_Action_MEO"), D.actions, D.aAcces, ["ID_Action_MEO"])
-      .forEach(l => actions.add(l.id));
-    resoudre(g(ligneGroupement, "Liste_Tache_ID_Tâche", "Liste_Tache_ID_Tache"), D.taches, D.tAcces, ["ID_Tâche", "ID_Tache"])
-      .forEach(l => taches.add(l.id));
-  } else {
-    D.actions.forEach(l => {
-      if (txt(D.aAcces(l, "Groupement")) !== code) return;
-      const n = txt(D.aAcces(l, "Nature")).toUpperCase();
-      if (n === "MEO") actions.add(l.id); else projets.add(l.id);
+  if (reglages.mode === "listes"){
+    const rProjets = resoudre(TG, ligneGroupement, ["Liste_ID_Projet_Action_AV"],
+      reglages.tAction, ["ID_Projet_Action_AV"]);
+    const rActions = resoudre(TG, ligneGroupement, ["Liste_ID_Action_MEO"],
+      reglages.tAction, ["ID_Action_MEO"]);
+    const rTaches = resoudre(TG, ligneGroupement, ["Liste_Tache_ID_Tâche", "Liste_Tache_ID_Tache"],
+      reglages.tTache, ["ID_Tâche", "ID_Tache"]);
+    const rMec = resoudre(TG, ligneGroupement, ["MEC_2023_ID_MEC_2023", "Liste_MEC_2023", "MEC_2023"],
+      reglages.tMec, CLES_MEC);
+    const rPap = resoudre(TG, ligneGroupement, ["PAPRIPACT_Action_PAPRIPACT", "Liste_PAPRIPACT", "PAPRIPACT"],
+      reglages.tPapripact, CLES_PAP);
+
+    parListes = !(rProjets.colonneAbsente && rActions.colonneAbsente && rTaches.colonneAbsente);
+    rProjets.trouves.forEach(l => projets.add(l.id));
+    rActions.trouves.forEach(l => actions.add(l.id));
+    rTaches.trouves.forEach(l => taches.add(l.id));
+    rMec.trouves.forEach(l => mec.add(l.id));
+    rPap.trouves.forEach(l => papripact.add(l.id));
+  }
+
+  if (!parListes){
+    const memeGroupement = v => v && (v === code || v === libelleGroupement);
+    ctxDe(reglages.tAction).lignes.forEach(l => {
+      if (!memeGroupement(texte(reglages.tAction, l, "Groupement"))) return;
+      if (texte(reglages.tAction, l, "Nature").toUpperCase() === "MEO") actions.add(l.id);
+      else projets.add(l.id);
     });
-    D.taches.forEach(l => {
-      if (txt(D.tAcces(l, "Groupement")) === code) taches.add(l.id);
+    ctxDe(reglages.tTache).lignes.forEach(l => {
+      if (memeGroupement(texte(reglages.tTache, l, "Groupement"))) taches.add(l.id);
+    });
+    ctxDe(reglages.tMec).lignes.forEach(l => {
+      if (memeGroupement(texte(reglages.tMec, l, "Groupement"))) mec.add(l.id);
+    });
+    ctxDe(reglages.tPapripact).lignes.forEach(l => {
+      if (memeGroupement(texte(reglages.tPapripact, l, "Groupement"))) papripact.add(l.id);
     });
   }
 
   /* Une ligne listée comme projet mais de nature MEO est reclassée, et inversement. */
+  const ctxA = ctxDe(reglages.tAction);
   const projetsOk = new Set(), actionsOk = new Set(actions);
   projets.forEach(id => {
-    const l = D.actions.find(x => x.id === id);
+    const l = ctxA.parId.get(id);
     if (!l) return;
-    const n = txt(D.aAcces(l, "Nature")).toUpperCase();
-    if (n === "MEO") actionsOk.add(id); else projetsOk.add(id);
+    if (texte(reglages.tAction, l, "Nature").toUpperCase() === "MEO") actionsOk.add(id);
+    else projetsOk.add(id);
   });
 
-  return { projets: projetsOk, actions: actionsOk, taches, parListes };
+  return { projets: projetsOk, actions: actionsOk, taches, mec, papripact, parListes };
 }
 
 /* =========================================================
-   Construction de l'arborescence
+   Construction de l'état
    ========================================================= */
 function construireEtat(code){
-  const ligneG = D.groupements.find(l => txt(D.gAcces(l, "Groupement")) === code)
-    || D.groupements.find(l => txt(D.gAcces(l, "Libellé_Groupement", "Libelle_Groupement")) === code);
+  const TG = reglages.tGroupement, ctxG = ctxDe(TG);
+  const ligneG = ctxG.lignes.find(l => texte(TG, l, "Groupement") === code);
   if (!ligneG) return null;
 
-  const rat = rattachements(ligneG, code);
+  const libelle = texte(TG, ligneG, "Libellé_Groupement", "Libelle_Groupement") || code;
+  const rat = rattachements(ligneG, code, libelle);
   const f = lireFiltres();
 
-  const projetsParCle = new Map();
-  const actionsParCle = new Map();
-  D.actions.forEach(l => {
+  const ctxA = ctxDe(reglages.tAction), ctxT = ctxDe(reglages.tTache);
+
+  /* Périmètre « portage » : on part des seuls projets portés par le groupement,
+     et on descend sur la totalité de leurs actions et de leurs tâches. */
+  let idsProjets = rat.projets, idsActions = rat.actions, idsTaches = rat.taches;
+  if (f.perimetre === "portage"){
+    const clesPortees = new Set();
+    idsProjets.forEach(id => {
+      const l = ctxA.parId.get(id);
+      if (l){
+        const cle = texte(reglages.tAction, l, "ID_Projet_Action_AV");
+        if (cle) clesPortees.add(cle);
+      }
+    });
+    idsActions = new Set();
+    idsTaches = new Set();
+    ctxA.lignes.forEach(l => {
+      if (texte(reglages.tAction, l, "Nature").toUpperCase() !== "MEO") return;
+      if (clesPortees.has(texte(reglages.tAction, l, "ID_Projet_Action_AV"))) idsActions.add(l.id);
+    });
+    ctxT.lignes.forEach(l => {
+      if (clesPortees.has(texte(reglages.tTache, l, "ID_Projet_Action_AV"))) idsTaches.add(l.id);
+    });
+  }
+
+  /* Index des projets et des actions par libellé. */
+  const projetsParCle = new Map(), actionsParCle = new Map();
+  ctxA.lignes.forEach(l => {
     const a = lireAction(l);
-    if (a.nature === "MEO"){ if (a.cleAction) actionsParCle.set(a.cleAction, { ligne: l, a }); }
-    else if (a.cleProjet) projetsParCle.set(a.cleProjet, { ligne: l, a });
+    if (a.nature === "MEO"){ if (a.cleAction) actionsParCle.set(a.cleAction, a); }
+    else if (a.cleProjet) projetsParCle.set(a.cleProjet, a);
   });
 
-  const arbre = new Map();   // clé projet -> noeud
-  const orphelins = [];      // lignes sans projet identifiable
+  const arbre = new Map();
+  const orphelins = [];
 
-  function noeudProjet(cleProjet){
-    if (!cleProjet) return null;
-    if (!arbre.has(cleProjet)){
-      const p = projetsParCle.get(cleProjet);
-      arbre.set(cleProjet, {
-        cle: cleProjet,
-        a: p ? p.a : null,
-        direct: false,
-        actions: new Map(),
-        taches: []
-      });
+  function noeudProjet(cle){
+    if (!cle) return null;
+    if (!arbre.has(cle)){
+      arbre.set(cle, { cle, a: projetsParCle.get(cle) || null, direct: false, actions: new Map(), taches: [] });
     }
-    return arbre.get(cleProjet);
+    return arbre.get(cle);
   }
-  function noeudAction(np, cleAction){
-    if (!np || !cleAction) return null;
-    if (!np.actions.has(cleAction)){
-      const m = actionsParCle.get(cleAction);
-      np.actions.set(cleAction, { cle: cleAction, a: m ? m.a : null, direct: false, taches: [] });
+  function noeudAction(np, cle){
+    if (!np || !cle) return null;
+    if (!np.actions.has(cle)){
+      np.actions.set(cle, { cle, a: actionsParCle.get(cle) || null, direct: false, taches: [] });
     }
-    return np.actions.get(cleAction);
+    return np.actions.get(cle);
   }
 
-  /* Projets rattachés */
-  rat.projets.forEach(id => {
-    const l = D.actions.find(x => x.id === id);
+  idsProjets.forEach(id => {
+    const l = ctxA.parId.get(id);
     if (!l) return;
     const a = lireAction(l);
-    const np = noeudProjet(a.cleProjet || ("#" + id));
+    const np = noeudProjet(a.cleProjet || ("Projet " + id));
     if (np){ np.a = a; np.direct = true; }
   });
 
-  /* Actions MEO rattachées */
-  rat.actions.forEach(id => {
-    const l = D.actions.find(x => x.id === id);
+  idsActions.forEach(id => {
+    const l = ctxA.parId.get(id);
     if (!l) return;
     const a = lireAction(l);
     const np = noeudProjet(a.cleProjet);
-    if (!np){ orphelins.push({ type: "action", a }); return; }
-    const na = noeudAction(np, a.cleAction || ("#" + id));
+    if (!np){ orphelins.push({ type: "action", o: a, libelle: a.cleAction }); return; }
+    const na = noeudAction(np, a.cleAction || ("Action " + id));
     if (na){ na.a = a; na.direct = true; }
   });
 
-  /* Tâches rattachées */
-  rat.taches.forEach(id => {
-    const l = D.taches.find(x => x.id === id);
+  idsTaches.forEach(id => {
+    const l = ctxT.parId.get(id);
     if (!l) return;
     const t = lireTache(l);
     const np = noeudProjet(t.cleProjet);
-    if (!np){ orphelins.push({ type: "tache", t }); return; }
-    if (t.cleAction){
-      const na = noeudAction(np, t.cleAction);
-      na.taches.push(Object.assign({ direct: true }, t));
-    } else {
-      np.taches.push(Object.assign({ direct: true }, t));
-    }
+    if (!np){ orphelins.push({ type: "tache", o: t, libelle: t.libelle }); return; }
+    if (t.cleAction) noeudAction(np, t.cleAction).taches.push(t);
+    else np.taches.push(t);
   });
 
-  /* Application des filtres */
-  const garderStatut = o => f.statuts.has(norm(o.statut));
+  const mecBrut = [], papBrut = [];
+  rat.mec.forEach(id => {
+    const l = ctxDe(reglages.tMec).parId.get(id);
+    if (l) mecBrut.push(lireAnnexe(reglages.tMec, l, facteurs.mec, CLES_MEC));
+  });
+  rat.papripact.forEach(id => {
+    const l = ctxDe(reglages.tPapripact).parId.get(id);
+    if (l) papBrut.push(lireAnnexe(reglages.tPapripact, l, facteurs.pap, CLES_PAP));
+  });
+
+  /* Filtres */
+  const garderStatut = o => {
+    const s = norm(o.statut);
+    if (s === norm("Terminé")) return f.termine;
+    if (s === norm("Interrompu")) return f.interrompu;
+    return true;
+  };
   const garderTexte = s => !f.texte || norm(s).includes(f.texte);
   const garderCollab = o => !f.collaborateur || txt(o.porteur) === f.collaborateur;
 
@@ -582,41 +713,41 @@ function construireEtat(code){
   arbre.forEach(np => {
     const actionsFinales = [];
     np.actions.forEach(na => {
-      const taches = f.taches ? na.taches.filter(t =>
-        garderStatut(t) && garderCollab(t) && (garderTexte(t.libelle) || garderTexte(na.cle))) : [];
-      const actionVisible = f.actions && na.direct
+      const taches = na.taches.filter(t =>
+        garderStatut(t) && garderCollab(t) && (garderTexte(t.libelle) || garderTexte(na.cle)));
+      const actionVisible = na.direct
         && (!na.a || (garderStatut(na.a) && garderCollab(na.a)))
         && garderTexte(na.cle);
-      if (actionVisible || taches.length){
-        actionsFinales.push({ noeud: na, taches, direct: na.direct && actionVisible });
-      }
+      if (actionVisible || taches.length) actionsFinales.push({ noeud: na, taches, direct: actionVisible });
     });
-    const tachesProjet = f.taches ? np.taches.filter(t =>
-      garderStatut(t) && garderCollab(t) && (garderTexte(t.libelle) || garderTexte(np.cle))) : [];
-    const projetVisible = f.projets && np.direct
+    const tachesProjet = np.taches.filter(t =>
+      garderStatut(t) && garderCollab(t) && (garderTexte(t.libelle) || garderTexte(np.cle)));
+    const projetVisible = np.direct
       && (!np.a || (garderStatut(np.a) && garderCollab(np.a)))
       && garderTexte(np.cle);
-
     if (projetVisible || actionsFinales.length || tachesProjet.length){
-      projetsFinaux.push({
-        noeud: np,
-        direct: np.direct && projetVisible,
-        actions: actionsFinales,
-        taches: tachesProjet
-      });
+      projetsFinaux.push({ noeud: np, direct: projetVisible, actions: actionsFinales, taches: tachesProjet });
     }
   });
 
   projetsFinaux.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr"));
   projetsFinaux.forEach(p => p.actions.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr")));
 
-  /* Compteurs : uniquement les lignes réellement rattachées au groupement */
-  const compte = { projets: 0, actions: 0, taches: 0, statuts: {} };
+  const resteAFaire = o => !o.interrompu && o.pourcent < 100;
+  const mecFinal = mecBrut.filter(o =>
+    garderStatut(o) && garderCollab(o) && garderTexte(o.libelle) && (!f.mecReste || resteAFaire(o)));
+  const papFinal = papBrut.filter(o =>
+    garderStatut(o) && garderCollab(o) && garderTexte(o.libelle));
+  mecFinal.sort((x, y) =>
+    (x.categorie || "").localeCompare(y.categorie || "", "fr") || x.libelle.localeCompare(y.libelle, "fr"));
+  papFinal.sort((x, y) => x.libelle.localeCompare(y.libelle, "fr"));
+
+  /* Compteurs : uniquement les lignes réellement rattachées. */
+  const compte = { projets: 0, actions: 0, taches: 0, mec: 0, papripact: 0, statuts: {} };
   const compter = o => {
-    const c = couleurAvancement(o.pourcent, o.interrompu).libelle;
-    const cle = o.interrompu ? "Interrompu" : (o.pourcent >= 100 ? "Terminé" : o.pourcent > 0 ? "En cours" : "À engager");
+    const cle = o.interrompu ? "Interrompu"
+      : o.pourcent >= 100 ? "Terminé" : o.pourcent > 0 ? "En cours" : "À engager";
     compte.statuts[cle] = (compte.statuts[cle] || 0) + 1;
-    return c;
   };
   projetsFinaux.forEach(p => {
     if (p.direct && p.noeud.a){ compte.projets++; compter(p.noeud.a); }
@@ -626,32 +757,31 @@ function construireEtat(code){
     });
     p.taches.forEach(t => { compte.taches++; compter(t); });
   });
+  mecFinal.forEach(o => { compte.mec++; compter(o); });
+  papFinal.forEach(o => { compte.papripact++; compter(o); });
 
   return {
-    code,
-    libelle: txt(D.gAcces(ligneG, "Libellé_Groupement", "Libelle_Groupement")) || code,
-    chef: txt(D.gAcces(ligneG, "Chef_Groupement")),
-    sousDirection: txt(D.gAcces(ligneG, "Sous-direction", "Sous_direction")),
-    sponsor: txt(D.gAcces(ligneG, "Sponsor_CODIR")),
+    code, libelle,
+    chef: texte(TG, ligneG, "Chef_Groupement"),
+    sousDirection: texte(TG, ligneG, "Sous-direction", "Sous_direction"),
+    sponsor: texte(TG, ligneG, "Sponsor_CODIR"),
     parListes: rat.parListes,
     projets: projetsFinaux,
     orphelins,
+    mec: mecFinal,
+    papripact: papFinal,
     compte
   };
 }
 
 function lireFiltres(){
-  const statuts = new Set();
-  document.querySelectorAll("input.stat:checked").forEach(c => statuts.add(norm(c.value)));
-  if (statuts.has(norm("A engager"))) statuts.add(norm("À engager"));
   return {
     texte: norm(document.getElementById("recherche").value),
     collaborateur: document.getElementById("selCollaborateur").value,
-    projets: document.getElementById("nvProjets").checked,
-    actions: document.getElementById("nvActions").checked,
-    taches: document.getElementById("nvTaches").checked,
-    contexte: document.getElementById("chkContexte").checked,
-    statuts
+    perimetre: document.getElementById("selPerimetre").value,
+    termine: document.getElementById("chkTermine").checked,
+    interrompu: document.getElementById("chkInterrompu").checked,
+    mecReste: document.getElementById("chkMecReste").checked
   };
 }
 
@@ -664,32 +794,51 @@ function pastille(o){
     + echapper(c.libelle) + "</span>";
 }
 
-function ligneHtml(classe, cle, obj, direct, contexte, avecRepli){
-  if (!contexte && !direct) return "";
+function ligneHtml(classe, libelle, obj, visible, avecRepli, cleRepli){
+  if (!visible) return "";
   const o = obj || { pourcent: 0, interrompu: false, porteur: "", echeance: "" };
-  const bouts = [];
-  bouts.push('<div class="ligne ' + classe + (direct ? "" : " contexte") + '">');
-  bouts.push(avecRepli
-    ? '<span class="repli" data-cle="' + echapper(cle) + '">' + (replies.has(cle) ? "▸" : "▾") + "</span>"
+  const direct = !!obj;
+  const h = ['<div class="ligne ' + classe + (direct ? "" : " contexte") + '">'];
+  h.push(avecRepli
+    ? '<span class="repli" data-cle="' + echapper(cleRepli) + '">' + (replies.has(cleRepli) ? "▸" : "▾") + "</span>"
     : '<span class="repli vide">·</span>');
-  bouts.push('<span class="titre">' + echapper(cle) + "</span>");
-  if (o.porteur) bouts.push('<span class="info">' + echapper(o.porteur) + "</span>");
-  if (o.echeance) bouts.push('<span class="info">éch. ' + echapper(o.echeance) + "</span>");
-  if (obj) bouts.push(pastille(o));
-  bouts.push("</div>");
-  return bouts.join("");
+  h.push('<span class="titre">' + echapper(libelle) + "</span>");
+  if (o.porteur) h.push('<span class="info">' + echapper(o.porteur) + "</span>");
+  if (o.echeance) h.push('<span class="info">éch. ' + echapper(o.echeance) + "</span>");
+  if (obj) h.push(pastille(o));
+  h.push("</div>");
+  return h.join("");
+}
+
+function sectionAnnexe(titre, lignes, grouperParCategorie){
+  if (!lignes.length) return "";
+  const h = ['<div class="bloc-projet">'];
+  h.push('<div class="ligne projet"><span class="repli vide">·</span><span class="titre">'
+    + echapper(titre) + '</span><span class="info">' + lignes.length
+    + " ligne" + (lignes.length > 1 ? "s" : "") + "</span></div>");
+  let categorieCourante = null;
+  lignes.forEach(o => {
+    if (grouperParCategorie && o.categorie && o.categorie !== categorieCourante){
+      categorieCourante = o.categorie;
+      h.push('<div class="ligne action"><span class="repli vide">·</span><span class="titre">'
+        + echapper(categorieCourante) + "</span></div>");
+    }
+    h.push(ligneHtml(grouperParCategorie && categorieCourante ? "tache" : "action", o.libelle, o, true, false, ""));
+  });
+  h.push("</div>");
+  return h.join("");
 }
 
 function etatHtml(etat, pourImpression){
   const f = lireFiltres();
   const c = etat.compte;
-  const total = c.projets + c.actions + c.taches;
+  const total = c.projets + c.actions + c.taches + c.mec + c.papripact;
   const ordre = ["À engager", "En cours", "Terminé", "Interrompu"];
   const couleurs = { "À engager": "#C0504D", "En cours": "#F79646", "Terminé": "#9BBB59", "Interrompu": "#4A4A4A" };
 
-  const h = [];
-  h.push('<div class="entete-grp">');
-  h.push("<h2>" + echapper(etat.libelle) + " <span style=\"font-weight:normal;font-size:13px\">(" + echapper(etat.code) + ")</span></h2>");
+  const h = ['<div class="entete-grp">'];
+  h.push('<h2>' + echapper(etat.libelle)
+    + ' <span style="font-weight:normal;font-size:13px">(' + echapper(etat.code) + ")</span></h2>");
   const meta = [];
   if (etat.chef) meta.push("Chef de groupement : <b>" + echapper(etat.chef) + "</b>");
   if (etat.sousDirection) meta.push("Sous-direction : <b>" + echapper(etat.sousDirection) + "</b>");
@@ -697,14 +846,23 @@ function etatHtml(etat, pourImpression){
   if (meta.length) h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
   h.push("</div>");
 
+  if (D.absentes.length){
+    h.push('<div class="avertissement">Table introuvable : ' + echapper(D.absentes.join(", "))
+      + ". Corrigez son nom dans les réglages.</div>");
+  }
+  if (!D.metaOk){
+    h.push('<div class="avertissement">Métadonnées du document illisibles : les colonnes de référence peuvent s\'afficher sous forme de numéro de ligne.</div>');
+  }
   if (!etat.parListes){
-    h.push('<div class="avertissement">Rattachement calculé depuis la colonne Groupement de chaque ligne : les listes de la table Groupement sont absentes ou vides.</div>');
+    h.push('<div class="avertissement">Rattachement calculé depuis la colonne Groupement de chaque ligne : les listes de la table Groupement sont absentes.</div>');
   }
 
   h.push('<div class="compteurs">');
   h.push('<div class="compteur"><div class="n">' + c.projets + '</div><div class="l">projets rattachés</div></div>');
   h.push('<div class="compteur"><div class="n">' + c.actions + '</div><div class="l">actions MEO</div></div>');
   h.push('<div class="compteur"><div class="n">' + c.taches + '</div><div class="l">tâches</div></div>');
+  h.push('<div class="compteur"><div class="n">' + c.mec + '</div><div class="l">MEC 2023</div></div>');
+  h.push('<div class="compteur"><div class="n">' + c.papripact + '</div><div class="l">PAPRIPACT</div></div>');
   h.push("</div>");
 
   if (total){
@@ -722,7 +880,7 @@ function etatHtml(etat, pourImpression){
     h.push("</div>");
   }
 
-  if (!etat.projets.length){
+  if (!etat.projets.length && !etat.mec.length && !etat.papripact.length && !etat.orphelins.length){
     h.push('<div class="vide-etat">Aucune ligne rattachée à ce groupement avec les filtres actuels.</div>');
     return h.join("");
   }
@@ -730,17 +888,13 @@ function etatHtml(etat, pourImpression){
   etat.projets.forEach(p => {
     const replie = replies.has(p.noeud.cle) && !pourImpression;
     h.push('<div class="bloc-projet">');
-    h.push(ligneHtml("projet", p.noeud.cle, p.noeud.a, p.direct || f.contexte, true, true));
+    h.push(ligneHtml("projet", p.noeud.cle, p.direct ? p.noeud.a : null, true, true, p.noeud.cle));
     if (!replie){
       p.actions.forEach(a => {
-        h.push(ligneHtml("action", a.noeud.cle, a.noeud.a, a.direct || f.contexte, true, false));
-        a.taches.forEach(t => {
-          h.push(ligneHtml("tache", t.libelle, t, true, true, false));
-        });
+        h.push(ligneHtml("action", a.noeud.cle, a.direct ? a.noeud.a : null, true, false, ""));
+        a.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
       });
-      p.taches.forEach(t => {
-        h.push(ligneHtml("tache", t.libelle, t, true, true, false));
-      });
+      p.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
     }
     h.push("</div>");
   });
@@ -748,15 +902,20 @@ function etatHtml(etat, pourImpression){
   if (etat.orphelins.length){
     h.push('<div class="bloc-projet">');
     h.push('<div class="ligne projet"><span class="repli vide">·</span><span class="titre">Sans projet identifié</span></div>');
-    etat.orphelins.forEach(o => {
-      if (o.type === "action") h.push(ligneHtml("action", o.a.cleAction, o.a, true, true, false));
-      else h.push(ligneHtml("tache", o.t.libelle, o.t, true, true, false));
+    etat.orphelins.forEach(x => {
+      h.push(ligneHtml(x.type === "action" ? "action" : "tache", x.libelle, x.o, true, false, ""));
     });
     h.push("</div>");
   }
 
+  h.push(sectionAnnexe("MEC 2023" + (f.mecReste ? " — reste à faire" : ""), etat.mec, true));
+  h.push(sectionAnnexe("PAPRIPACT", etat.papripact, false));
+
   return h.join("");
 }
+
+let replies = new Set();
+let groupementCourant = null;
 
 function afficher(){
   const zone = document.getElementById("contenu");
@@ -785,10 +944,12 @@ function brancherReplis(){
 function majCollaborateurs(etat){
   const sel = document.getElementById("selCollaborateur");
   const actuel = sel.value;
+  const TC = reglages.tCollaborateur;
   const noms = new Set();
-  D.collaborateurs.forEach(l => {
-    if (txt(D.cAcces(l, "Groupement")) === etat.code){
-      const n = txt(D.cAcces(l, "Nom_Prénom", "Nom_Prenom", "Nom"));
+  ctxDe(TC).lignes.forEach(l => {
+    const g = texte(TC, l, "Groupement");
+    if (g === etat.code || g === etat.libelle){
+      const n = texte(TC, l, "Nom_Prénom", "Nom_Prenom", "Nom");
       if (n) noms.add(n);
     }
   });
@@ -801,16 +962,11 @@ function majCollaborateurs(etat){
 /* =========================================================
    Impression
    ========================================================= */
-function imprimerCourant(){
-  window.print();
-}
-
 function imprimerTous(){
   const zone = document.getElementById("contenu");
   const sauvegarde = zone.innerHTML;
-  const codes = D.groupements
-    .map(l => txt(D.gAcces(l, "Groupement")))
-    .filter(Boolean);
+  const TG = reglages.tGroupement;
+  const codes = ctxDe(TG).lignes.map(l => texte(TG, l, "Groupement")).filter(Boolean);
   const morceaux = codes.map(code => {
     const e = construireEtat(code);
     return e ? '<div class="section-impression">' + etatHtml(e, true) + "</div>" : "";
@@ -828,18 +984,17 @@ function imprimerTous(){
    ========================================================= */
 function remplirGroupements(){
   const sel = document.getElementById("selGroupement");
-  const items = D.groupements.map(l => ({
-    code: txt(D.gAcces(l, "Groupement")),
-    libelle: txt(D.gAcces(l, "Libellé_Groupement", "Libelle_Groupement"))
+  const TG = reglages.tGroupement;
+  const items = ctxDe(TG).lignes.map(l => ({
+    code: texte(TG, l, "Groupement"),
+    libelle: texte(TG, l, "Libellé_Groupement", "Libelle_Groupement")
   })).filter(x => x.code);
   items.sort((a, b) => (a.libelle || a.code).localeCompare(b.libelle || b.code, "fr"));
   sel.innerHTML = items.map(x =>
-    '<option value="' + echapper(x.code) + '">' + echapper(x.libelle || x.code) + " (" + echapper(x.code) + ")</option>"
-  ).join("");
-  if (items.length){
-    groupementCourant = items[0].code;
-    sel.value = groupementCourant;
-  }
+    '<option value="' + echapper(x.code) + '">' + echapper(x.libelle || x.code)
+    + " (" + echapper(x.code) + ")</option>").join("");
+  if (items.length && !items.some(x => x.code === groupementCourant)) groupementCourant = items[0].code;
+  if (groupementCourant) sel.value = groupementCourant;
 }
 
 function brancherInterface(){
@@ -848,35 +1003,29 @@ function brancherInterface(){
     replies = new Set();
     afficher();
   });
-  ["recherche", "selCollaborateur", "nvProjets", "nvActions", "nvTaches", "chkContexte"]
-    .forEach(id => {
-      const el = document.getElementById(id);
-      el.addEventListener(el.tagName === "INPUT" && el.type === "search" ? "input" : "change", afficher);
-    });
-  document.querySelectorAll("input.stat").forEach(c => c.addEventListener("change", afficher));
-  document.getElementById("btnImprimer").addEventListener("click", imprimerCourant);
+  ["recherche", "selCollaborateur", "selPerimetre",
+   "chkTermine", "chkInterrompu", "chkMecReste"].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener(el.type === "search" ? "input" : "change", afficher);
+  });
+  document.getElementById("btnImprimer").addEventListener("click", () => window.print());
   document.getElementById("btnTous").addEventListener("click", imprimerTous);
 
   const panneau = document.getElementById("panneauReglages");
   document.getElementById("btnReglages").addEventListener("click", () => {
-    document.getElementById("tGroupement").value = reglages.tGroupement;
-    document.getElementById("tCollaborateur").value = reglages.tCollaborateur;
-    document.getElementById("tAction").value = reglages.tAction;
-    document.getElementById("tTache").value = reglages.tTache;
-    document.getElementById("mode").value = reglages.mode;
+    ["tGroupement", "tCollaborateur", "tAction", "tTache", "tMec", "tPapripact", "mode"]
+      .forEach(k => { document.getElementById(k).value = reglages[k]; });
     panneau.classList.add("ouvert");
   });
   document.getElementById("btnAnnulerReglages").addEventListener("click", () => panneau.classList.remove("ouvert"));
   document.getElementById("btnEnregistrerReglages").addEventListener("click", async () => {
-    reglages = {
-      tGroupement: document.getElementById("tGroupement").value.trim() || REGLAGES_DEFAUT.tGroupement,
-      tCollaborateur: document.getElementById("tCollaborateur").value.trim() || REGLAGES_DEFAUT.tCollaborateur,
-      tAction: document.getElementById("tAction").value.trim() || REGLAGES_DEFAUT.tAction,
-      tTache: document.getElementById("tTache").value.trim() || REGLAGES_DEFAUT.tTache,
-      mode: document.getElementById("mode").value
-    };
+    const lu = {};
+    ["tGroupement", "tCollaborateur", "tAction", "tTache", "tMec", "tPapripact"]
+      .forEach(k => { lu[k] = document.getElementById(k).value.trim() || REGLAGES_DEFAUT[k]; });
+    lu.mode = document.getElementById("mode").value;
+    reglages = lu;
     panneau.classList.remove("ouvert");
-    try { await grist.widgetApi.setOptions(reglages); } catch (e) { /* options indisponibles */ }
+    try { await grist.widgetApi.setOptions(reglages); } catch (e){ /* options indisponibles */ }
     await demarrerDonnees();
   });
 }
@@ -885,7 +1034,14 @@ async function demarrerDonnees(){
   const zone = document.getElementById("contenu");
   try {
     zone.innerHTML = '<div class="vide-etat">Chargement des données…</div>';
+    D.pretes = false;
     await charger();
+    facteurs = {
+      action: facteurAvancement(reglages.tAction),
+      tache: facteurAvancement(reglages.tTache),
+      mec: facteurAvancement(reglages.tMec),
+      pap: facteurAvancement(reglages.tPapripact)
+    };
     remplirGroupements();
     afficher();
   } catch (err){
@@ -902,7 +1058,7 @@ grist.ready({
   onEditOptions: () => document.getElementById("btnReglages").click()
 });
 
-grist.onOptions(async (options) => {
+grist.onOptions(options => {
   if (options) reglages = Object.assign({}, REGLAGES_DEFAUT, options);
 });
 
@@ -911,7 +1067,7 @@ grist.onOptions(async (options) => {
   try {
     const o = await grist.widgetApi.getOptions();
     if (o) reglages = Object.assign({}, REGLAGES_DEFAUT, o);
-  } catch (e) { /* première ouverture */ }
+  } catch (e){ /* première ouverture */ }
   await demarrerDonnees();
 })();
 </script>
