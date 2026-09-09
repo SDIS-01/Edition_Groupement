@@ -228,6 +228,18 @@ function formatDate(v){
   return j + "/" + m + "/" + d.getUTCFullYear();
 }
 
+/* Date exploitable par Excel. Grist stocke un minuit UTC ; on repositionne à midi
+   en heure locale pour qu'aucun décalage de fuseau ne fasse changer de jour. */
+function dateDe(v){
+  if (v === null || v === undefined || v === "") return null;
+  let d;
+  if (typeof v === "number") d = new Date(v * 1000);
+  else if (v instanceof Date) d = v;
+  else d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0);
+}
+
 function rempli(v){
   return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length <= 1));
 }
@@ -443,6 +455,7 @@ function lireAction(ligne){
     porteur: texte(T, ligne, "Porteur"),
     groupement: texte(T, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
+    echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
     statut: etatStatut(statutBrut, pourcent, interrompu),
     pourcent, interrompu
   };
@@ -464,6 +477,7 @@ function lireTache(ligne){
     porteur: texte(T, ligne, "Porteur"),
     groupement: texte(T, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev")),
+    echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev")),
     statut: etatStatut(statutBrut, pourcent, interrompu),
     pourcent, interrompu
   };
@@ -490,6 +504,7 @@ function lireAnnexe(tableId, ligne, facteur, clesLibelle){
     porteur: texte(tableId, ligne, "Porteur"),
     groupement: texte(tableId, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
+    echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
     statut: etatStatut(statutBrut, pourcent, interrompu),
     pourcent, interrompu
   };
@@ -1065,6 +1080,13 @@ function cellulesAvancement(cellAvct, cellStatut, o){
   cellStatut.value = o.statut;
 }
 
+function celluleEcheance(cell, o){
+  if (!o || !o.echeanceDate){ cell.value = null; return; }
+  cell.value = o.echeanceDate;
+  cell.numFmt = "dd/mm/yyyy";
+  cell.alignment = { horizontal: "center", vertical: "top" };
+}
+
 function nomFeuille(etat, prises){
   let base = (etat.code || "Groupement").replace(/[\\/*?:\[\]]/g, " ").slice(0, 28).trim();
   let nom = base, n = 2;
@@ -1099,9 +1121,10 @@ function ajouterFeuilleGroupement(wb, etat, prises){
   entete.height = 18;
 
   aplatir(etat).forEach(l => {
-    const r = ws.addRow([l.niveau, l.libelle, l.o ? l.o.porteur : "", l.o ? l.o.echeance : "", null, ""]);
+    const r = ws.addRow([l.niveau, l.libelle, l.o ? l.o.porteur : "", null, null, ""]);
     styleLigne([r.getCell(1), r.getCell(2), r.getCell(3), r.getCell(4), r.getCell(6)], l);
     r.getCell(2).alignment = { vertical: "top", wrapText: true, indent: l.profondeur * 2 };
+    celluleEcheance(r.getCell(4), l.o);
     cellulesAvancement(r.getCell(5), r.getCell(6), l.o);
   });
 
@@ -1117,7 +1140,7 @@ function ajouterFeuilleRecap(wb, etats){
   });
 
   ws.columns = [
-    { key: "groupement", width: 34 },
+    { key: "groupement", width: 13 },
     { key: "niveau", width: 13 },
     { key: "projet", width: 42 },
     { key: "action", width: 42 },
@@ -1142,11 +1165,12 @@ function ajouterFeuilleRecap(wb, etats){
   etats.forEach(etat => {
     aplatir(etat).forEach(l => {
       const r = ws.addRow([
-        etat.libelle, l.niveau, l.projet, l.action, l.libelle,
-        l.o ? l.o.porteur : "", l.o ? l.o.echeance : "", null, "",
+        etat.code, l.niveau, l.projet, l.action, l.libelle,
+        l.o ? l.o.porteur : "", null, null, "",
         l.o ? "Rattaché" : "Contexte"
       ]);
       styleLigne([1, 2, 3, 4, 5, 6, 7, 9, 10].map(i => r.getCell(i)), l);
+      celluleEcheance(r.getCell(7), l.o);
       cellulesAvancement(r.getCell(8), r.getCell(9), l.o);
     });
   });
