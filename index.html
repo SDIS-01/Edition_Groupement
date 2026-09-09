@@ -113,7 +113,6 @@
     <div class="grandir"></div>
     <button id="btnImprimer">Imprimer / PDF</button>
     <button class="secondaire" id="btnTous">Éditer tous les groupements</button>
-    <button class="secondaire" id="btnReglages">Réglages</button>
   </div>
   <div class="filtres">
     <div class="champ">
@@ -134,9 +133,8 @@
     <div class="champ">
       <span>Inclure</span>
       <div class="cases">
-        <label><input type="checkbox" id="chkTermine" checked> Terminé</label>
-        <label><input type="checkbox" id="chkInterrompu" checked> Interrompu</label>
-        <label><input type="checkbox" id="chkMecReste"> MEC 2023 : reste à faire seulement</label>
+        <label><input type="checkbox" id="chkTermine"> Terminé</label>
+        <label><input type="checkbox" id="chkInterrompu"> Interrompu</label>
       </div>
     </div>
   </div>
@@ -733,9 +731,8 @@ function construireEtat(code){
   projetsFinaux.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr"));
   projetsFinaux.forEach(p => p.actions.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr")));
 
-  const resteAFaire = o => !o.interrompu && o.pourcent < 100;
   const mecFinal = mecBrut.filter(o =>
-    garderStatut(o) && garderCollab(o) && garderTexte(o.libelle) && (!f.mecReste || resteAFaire(o)));
+    garderStatut(o) && garderCollab(o) && garderTexte(o.libelle));
   const papFinal = papBrut.filter(o =>
     garderStatut(o) && garderCollab(o) && garderTexte(o.libelle));
   mecFinal.sort((x, y) =>
@@ -780,8 +777,7 @@ function lireFiltres(){
     collaborateur: document.getElementById("selCollaborateur").value,
     perimetre: document.getElementById("selPerimetre").value,
     termine: document.getElementById("chkTermine").checked,
-    interrompu: document.getElementById("chkInterrompu").checked,
-    mecReste: document.getElementById("chkMecReste").checked
+    interrompu: document.getElementById("chkInterrompu").checked
   };
 }
 
@@ -908,7 +904,7 @@ function etatHtml(etat, pourImpression){
     h.push("</div>");
   }
 
-  h.push(sectionAnnexe("MEC 2023" + (f.mecReste ? " — reste à faire" : ""), etat.mec, true));
+  h.push(sectionAnnexe("MEC 2023", etat.mec, true));
   h.push(sectionAnnexe("PAPRIPACT", etat.papripact, false));
 
   return h.join("");
@@ -997,6 +993,12 @@ function remplirGroupements(){
   if (groupementCourant) sel.value = groupementCourant;
 }
 
+function ouvrirReglages(){
+  ["tGroupement", "tCollaborateur", "tAction", "tTache", "tMec", "tPapripact", "mode"]
+    .forEach(k => { document.getElementById(k).value = reglages[k]; });
+  document.getElementById("panneauReglages").classList.add("ouvert");
+}
+
 function brancherInterface(){
   document.getElementById("selGroupement").addEventListener("change", e => {
     groupementCourant = e.target.value;
@@ -1004,7 +1006,7 @@ function brancherInterface(){
     afficher();
   });
   ["recherche", "selCollaborateur", "selPerimetre",
-   "chkTermine", "chkInterrompu", "chkMecReste"].forEach(id => {
+   "chkTermine", "chkInterrompu"].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener(el.type === "search" ? "input" : "change", afficher);
   });
@@ -1012,11 +1014,6 @@ function brancherInterface(){
   document.getElementById("btnTous").addEventListener("click", imprimerTous);
 
   const panneau = document.getElementById("panneauReglages");
-  document.getElementById("btnReglages").addEventListener("click", () => {
-    ["tGroupement", "tCollaborateur", "tAction", "tTache", "tMec", "tPapripact", "mode"]
-      .forEach(k => { document.getElementById(k).value = reglages[k]; });
-    panneau.classList.add("ouvert");
-  });
   document.getElementById("btnAnnulerReglages").addEventListener("click", () => panneau.classList.remove("ouvert"));
   document.getElementById("btnEnregistrerReglages").addEventListener("click", async () => {
     const lu = {};
@@ -1055,7 +1052,7 @@ async function demarrerDonnees(){
    ========================================================= */
 grist.ready({
   requiredAccess: "full",
-  onEditOptions: () => document.getElementById("btnReglages").click()
+  onEditOptions: ouvrirReglages
 });
 
 grist.onOptions(options => {
