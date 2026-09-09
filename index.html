@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>État par groupement</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+  :root{
+    --bleu:#002395;
+    --bleu-clair:#e8ecf7;
+    --vert:#9BBB59;
+    --jaune:#FFCC00;
+    --orange:#F79646;
+    --rouge:#C0504D;
+    --gris:#4A4A4A;
+    --trait:#d6dae6;
+    --texte:#1c1c1c;
+    --attenue:#7a7f8c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:Tahoma,Geneva,Verdana,sans-serif;
+    font-size:13px;
+    color:var(--texte);
+    background:#fff;
+  }
+  h1,h2,h3{color:var(--bleu);margin:0;font-weight:bold;}
+
+  /* ---------- Barre de commandes ---------- */
+  .barre{
+    position:sticky;top:0;z-index:20;
+    background:#fff;
+    border-bottom:2px solid var(--bleu);
+    padding:10px 14px 8px;
+  }
+  .barre-haut{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .barre-haut h1{font-size:16px;letter-spacing:.2px;}
+  .grandir{flex:1;}
+  .filtres{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-top:8px;}
+  .champ{display:flex;flex-direction:column;gap:3px;}
+  .champ > span{font-size:10px;color:var(--attenue);}
+  input[type=text],input[type=search],select{
+    font-family:inherit;font-size:12px;padding:4px 6px;
+    border:1px solid var(--trait);border-radius:3px;background:#fff;color:var(--texte);
+  }
+  input[type=search]{min-width:190px;}
+  select{min-width:150px;}
+  input:focus,select:focus,button:focus{outline:2px solid var(--bleu);outline-offset:1px;}
+  .cases{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .cases label{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;}
+  button{
+    font-family:inherit;font-size:12px;padding:5px 11px;cursor:pointer;
+    border:1px solid var(--bleu);border-radius:3px;background:var(--bleu);color:#fff;
+  }
+  button.secondaire{background:#fff;color:var(--bleu);}
+  button:hover{opacity:.88;}
+
+  /* ---------- Synthèse ---------- */
+  .contenu{padding:14px;}
+  .entete-grp{border-left:4px solid var(--bleu);padding:2px 0 2px 10px;margin-bottom:10px;}
+  .entete-grp h2{font-size:17px;}
+  .meta{font-size:12px;color:var(--attenue);margin-top:3px;}
+  .meta b{color:var(--texte);font-weight:normal;}
+  .compteurs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .compteur{
+    border:1px solid var(--trait);border-radius:3px;
+    padding:6px 12px;min-width:104px;background:#fbfcfe;
+  }
+  .compteur .n{font-size:20px;color:var(--bleu);font-weight:bold;line-height:1.1;}
+  .compteur .l{font-size:11px;color:var(--attenue);}
+  .repartition{display:flex;height:14px;border-radius:2px;overflow:hidden;margin-bottom:4px;border:1px solid var(--trait);}
+  .repartition div{height:100%;}
+  .legende{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--attenue);margin-bottom:14px;}
+  .legende span{display:flex;align-items:center;gap:4px;}
+  .puce{width:9px;height:9px;border-radius:2px;display:inline-block;}
+
+  /* ---------- Arborescence ---------- */
+  .bloc-projet{border:1px solid var(--trait);border-radius:3px;margin-bottom:9px;overflow:hidden;}
+  .ligne{
+    display:flex;align-items:baseline;gap:8px;
+    padding:6px 9px;border-top:1px solid #eef0f6;
+  }
+  .bloc-projet > .ligne:first-child{border-top:none;}
+  .ligne.projet{background:var(--bleu-clair);}
+  .ligne.projet .titre{font-weight:bold;color:var(--bleu);font-size:13px;}
+  .ligne.action{padding-left:26px;background:#fafbfe;}
+  .ligne.action .titre{font-weight:bold;font-size:12px;}
+  .ligne.tache{padding-left:46px;}
+  .ligne.tache .titre{font-size:12px;}
+  .ligne.contexte{opacity:.55;font-style:italic;}
+  .titre{flex:1;min-width:0;}
+  .repli{cursor:pointer;user-select:none;color:var(--bleu);width:12px;text-align:center;flex:0 0 12px;}
+  .repli.vide{visibility:hidden;}
+  .pastille{
+    flex:0 0 auto;font-size:11px;padding:1px 7px;border-radius:9px;
+    color:#fff;white-space:nowrap;
+  }
+  .pastille.claire{color:#3a3000;}
+  .info{flex:0 0 auto;font-size:11px;color:var(--attenue);white-space:nowrap;}
+  .marque{
+    flex:0 0 auto;font-size:10px;padding:0 5px;border-radius:2px;
+    background:var(--bleu);color:#fff;
+  }
+  .vide-etat{padding:26px 4px;color:var(--attenue);}
+  .avertissement{
+    background:#fff8e1;border:1px solid #ffcc00;border-radius:3px;
+    padding:7px 10px;margin-bottom:10px;font-size:12px;
+  }
+
+  /* ---------- Réglages ---------- */
+  .reglages{
+    position:fixed;inset:0;background:rgba(0,0,0,.35);
+    display:none;align-items:center;justify-content:center;z-index:50;
+  }
+  .reglages.ouvert{display:flex;}
+  .reglages-boite{
+    background:#fff;border-radius:4px;padding:18px;width:min(430px,92vw);
+    box-shadow:0 8px 30px rgba(0,0,0,.25);
+  }
+  .reglages-boite h3{font-size:14px;margin-bottom:10px;}
+  .reglages-boite .champ{margin-bottom:9px;}
+  .reglages-boite input[type=text]{width:100%;}
+  .reglages-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+  .aide{font-size:11px;color:var(--attenue);margin-top:2px;}
+
+  /* ---------- Impression ---------- */
+  .entete-impression{display:none;}
+  @page{size:A4 portrait;margin:14mm 12mm 14mm 12mm;}
+  @media print{
+    .barre,.reglages,.repli{display:none !important;}
+    .contenu{padding:0;}
+    body{font-size:10.5pt;}
+    .entete-impression{
+      display:block;border-bottom:2px solid var(--bleu);
+      padding-bottom:5px;margin-bottom:10px;
+    }
+    .entete-impression .t{color:var(--bleu);font-weight:bold;font-size:13pt;}
+    .entete-impression .d{font-size:9pt;color:var(--attenue);}
+    .bloc-projet{break-inside:avoid;page-break-inside:avoid;}
+    .ligne{break-inside:avoid;page-break-inside:avoid;}
+    .pastille{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .ligne.projet,.repartition div,.puce,.marque{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .section-impression{page-break-before:always;}
+    .section-impression:first-of-type{page-break-before:auto;}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
+</style>
+</head>
+<body>
+
+<div class="barre" id="barre">
+  <div class="barre-haut">
+    <h1>État par groupement</h1>
+    <div class="champ">
+      <span>Groupement</span>
+      <select id="selGroupement"></select>
+    </div>
+    <div class="grandir"></div>
+    <button id="btnImprimer">Imprimer / PDF</button>
+    <button class="secondaire" id="btnTous">Éditer tous les groupements</button>
+    <button class="secondaire" id="btnReglages">Réglages</button>
+  </div>
+  <div class="filtres">
+    <div class="champ">
+      <span>Recherche</span>
+      <input type="search" id="recherche" placeholder="Projet, action, tâche…">
+    </div>
+    <div class="champ">
+      <span>Collaborateur</span>
+      <select id="selCollaborateur"><option value="">Tous</option></select>
+    </div>
+    <div class="champ">
+      <span>Niveaux</span>
+      <div class="cases">
+        <label><input type="checkbox" id="nvProjets" checked> Projets</label>
+        <label><input type="checkbox" id="nvActions" checked> Actions MEO</label>
+        <label><input type="checkbox" id="nvTaches" checked> Tâches</label>
+      </div>
+    </div>
+    <div class="champ">
+      <span>Statuts</span>
+      <div class="cases">
+        <label><input type="checkbox" class="stat" value="A engager" checked> À engager</label>
+        <label><input type="checkbox" class="stat" value="En cours" checked> En cours</label>
+        <label><input type="checkbox" class="stat" value="Terminé" checked> Terminé</label>
+        <label><input type="checkbox" class="stat" value="Interrompu" checked> Interrompu</label>
+      </div>
+    </div>
+    <div class="champ">
+      <span>Affichage</span>
+      <div class="cases">
+        <label><input type="checkbox" id="chkContexte" checked> Afficher les parents non rattachés</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="contenu" id="contenu">
+  <div class="vide-etat">Chargement des données…</div>
+</div>
+
+<div class="reglages" id="panneauReglages">
+  <div class="reglages-boite">
+    <h3>Réglages</h3>
+    <div class="champ">
+      <span>Table des groupements</span>
+      <input type="text" id="tGroupement">
+    </div>
+    <div class="champ">
+      <span>Table des collaborateurs</span>
+      <input type="text" id="tCollaborateur">
+    </div>
+    <div class="champ">
+      <span>Table des projets et actions</span>
+      <input type="text" id="tAction">
+    </div>
+    <div class="champ">
+      <span>Table des tâches</span>
+      <input type="text" id="tTache">
+    </div>
+    <div class="champ">
+      <span>Rattachement au groupement</span>
+      <select id="mode">
+        <option value="listes">Listes de la table Groupement</option>
+        <option value="colonne">Colonne Groupement de chaque ligne</option>
+      </select>
+      <div class="aide">Les deux méthodes doivent donner le même résultat, le groupement étant déduit du porteur.</div>
+    </div>
+    <div class="reglages-actions">
+      <button class="secondaire" id="btnAnnulerReglages">Annuler</button>
+      <button id="btnEnregistrerReglages">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   Réglages
+   ========================================================= */
+const REGLAGES_DEFAUT = {
+  tGroupement: "Groupement",
+  tCollaborateur: "Collaborateur",
+  tAction: "Liste_Action_MEO",
+  tTache: "Liste_Tache",
+  mode: "listes"
+};
+let reglages = Object.assign({}, REGLAGES_DEFAUT);
+
+/* =========================================================
+   Outils
+   ========================================================= */
+const norm = s => (s === null || s === undefined ? "" : String(s))
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase().replace(/[^a-z0-9]/g, "");
+
+const txt = v => (v === null || v === undefined) ? "" : String(v).trim();
+
+function echapper(s){
+  return txt(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* Les colId Grist ne sont pas les libellés : on cherche par nom normalisé. */
+function creerAcces(colonnes){
+  const index = {};
+  colonnes.forEach(c => { index[norm(c)] = c; });
+  return function(ligne, ...noms){
+    for (const n of noms){
+      const c = index[norm(n)];
+      if (c !== undefined && ligne[c] !== undefined) return ligne[c];
+    }
+    return undefined;
+  };
+}
+
+function existeColonne(colonnes, ...noms){
+  const index = {};
+  colonnes.forEach(c => { index[norm(c)] = c; });
+  return noms.some(n => index[norm(n)] !== undefined);
+}
+
+function enLignes(table){
+  const cols = Object.keys(table || {});
+  if (!cols.length) return { lignes: [], colonnes: [] };
+  const n = (table.id || table[cols[0]] || []).length;
+  const lignes = [];
+  for (let i = 0; i < n; i++){
+    const o = {};
+    cols.forEach(c => { o[c] = table[c][i]; });
+    lignes.push(o);
+  }
+  return { lignes, colonnes: cols };
+}
+
+function formatDate(v){
+  if (v === null || v === undefined || v === "") return "";
+  let d;
+  if (typeof v === "number") d = new Date(v * 1000);
+  else if (v instanceof Date) d = v;
+  else { d = new Date(v); }
+  if (isNaN(d.getTime())) return "";
+  const j = String(d.getUTCDate()).padStart(2, "0");
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return j + "/" + m + "/" + d.getUTCFullYear();
+}
+
+function rempli(v){
+  return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length <= 1));
+}
+
+/* Liste de références Grist : ['L', 3, 8] ou liste de libellés. */
+function listeRef(v){
+  if (Array.isArray(v)) return v[0] === "L" ? v.slice(1) : v.slice();
+  if (v === null || v === undefined || v === "") return [];
+  if (typeof v === "number") return [v];
+  return String(v).split(",").map(s => s.trim()).filter(Boolean);
+}
+
+/* =========================================================
+   Couleurs d'avancement (charte des widgets existants)
+   ========================================================= */
+function couleurAvancement(pourcent, interrompu){
+  if (interrompu) return { fond: "#4A4A4A", clair: false, libelle: "Interrompu" };
+  if (pourcent >= 100) return { fond: "#9BBB59", clair: false, libelle: "Terminé" };
+  if (pourcent >= 50)  return { fond: "#FFCC00", clair: true,  libelle: pourcent + " %" };
+  if (pourcent >= 1)   return { fond: "#F79646", clair: false, libelle: pourcent + " %" };
+  return { fond: "#C0504D", clair: false, libelle: "À faire" };
+}
+
+/* =========================================================
+   État global
+   ========================================================= */
+const D = {
+  groupements: [], gAcces: null, gCols: [],
+  collaborateurs: [], cAcces: null, cCols: [],
+  actions: [], aAcces: null, aCols: [], aFacteur: 100,
+  taches: [], tAcces: null, tCols: [], tFacteur: 100,
+  pretes: false
+};
+let groupementCourant = null;
+let replies = new Set();
+
+/* =========================================================
+   Chargement
+   ========================================================= */
+async function charger(){
+  const [g, c, a, t] = await Promise.all([
+    grist.docApi.fetchTable(reglages.tGroupement),
+    grist.docApi.fetchTable(reglages.tCollaborateur),
+    grist.docApi.fetchTable(reglages.tAction),
+    grist.docApi.fetchTable(reglages.tTache)
+  ]);
+
+  const G = enLignes(g), C = enLignes(c), A = enLignes(a), T = enLignes(t);
+
+  D.groupements = G.lignes; D.gCols = G.colonnes; D.gAcces = creerAcces(G.colonnes);
+  D.collaborateurs = C.lignes; D.cCols = C.colonnes; D.cAcces = creerAcces(C.colonnes);
+  D.actions = A.lignes; D.aCols = A.colonnes; D.aAcces = creerAcces(A.colonnes);
+  D.taches = T.lignes; D.tCols = T.colonnes; D.tAcces = creerAcces(T.colonnes);
+
+  D.aFacteur = facteurAvancement(D.actions, D.aAcces);
+  D.tFacteur = facteurAvancement(D.taches, D.tAcces);
+  D.pretes = true;
+}
+
+/* L'avancement est stocké en fraction (0,75) ou en points (75) selon les tables. */
+function facteurAvancement(lignes, acces){
+  let max = 0;
+  lignes.forEach(l => {
+    const v = Number(acces(l, "Avancement"));
+    if (!isNaN(v)) max = Math.max(max, v);
+  });
+  return max <= 1 ? 100 : 1;
+}
+
+/* =========================================================
+   Lecture d'une ligne
+   ========================================================= */
+function lireAction(ligne){
+  const a = D.aAcces;
+  const brut = Number(a(ligne, "Avancement"));
+  const pourcent = isNaN(brut) ? 0 : Math.round(brut * D.aFacteur);
+  const statutBrut = txt(a(ligne, "Statut"));
+  const interrompu = norm(statutBrut) === "interrompu"
+    || rempli(a(ligne, "Date_Suspension", "Date_suspension"))
+    || rempli(a(ligne, "Date_Abandon"));
+  return {
+    id: ligne.id,
+    cleProjet: txt(a(ligne, "ID_Projet_Action_AV")),
+    cleAction: txt(a(ligne, "ID_Action_MEO")),
+    nature: txt(a(ligne, "Nature")).toUpperCase(),
+    porteur: txt(a(ligne, "Porteur")),
+    groupement: txt(a(ligne, "Groupement")),
+    priorite: txt(a(ligne, "Priorité", "Priorite")),
+    echeance: formatDate(a(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
+    statut: interrompu ? "Interrompu" : (statutBrut || (pourcent >= 100 ? "Terminé" : pourcent > 0 ? "En cours" : "A engager")),
+    pourcent, interrompu
+  };
+}
+
+function lireTache(ligne){
+  const t = D.tAcces;
+  const brut = Number(t(ligne, "Avancement"));
+  const pourcent = isNaN(brut) ? 0 : Math.round(brut * D.tFacteur);
+  const statutBrut = txt(t(ligne, "Statut"));
+  const interrompu = norm(statutBrut) === "interrompu"
+    || rempli(t(ligne, "Date_suspension", "Date_Suspension"))
+    || rempli(t(ligne, "Date_Abandon"));
+  return {
+    id: ligne.id,
+    cleProjet: txt(t(ligne, "ID_Projet_Action_AV")),
+    cleAction: txt(t(ligne, "ID_Action_MEO")),
+    libelle: txt(t(ligne, "ID_Tâche", "ID_Tache")),
+    porteur: txt(t(ligne, "Porteur")),
+    groupement: txt(t(ligne, "Groupement")),
+    echeance: formatDate(t(ligne, "Ech_Prev", "Ech.prev")),
+    statut: interrompu ? "Interrompu" : (statutBrut || (pourcent >= 100 ? "Terminé" : pourcent > 0 ? "En cours" : "A engager")),
+    pourcent, interrompu
+  };
+}
+
+/* =========================================================
+   Rattachement des lignes au groupement
+   ========================================================= */
+function resoudre(valeur, lignes, acces, clesLibelle){
+  const refs = listeRef(valeur);
+  if (!refs.length) return [];
+  const parId = new Map(lignes.map(l => [l.id, l]));
+  const parLibelle = new Map();
+  lignes.forEach(l => {
+    for (const k of clesLibelle){
+      const v = txt(acces(l, k));
+      if (v){
+        if (!parLibelle.has(v)) parLibelle.set(v, []);
+        parLibelle.get(v).push(l);
+      }
+    }
+  });
+  const trouves = [];
+  refs.forEach(r => {
+    if (typeof r === "number"){
+      const l = parId.get(r);
+      if (l) trouves.push(l);
+    } else {
+      const liste = parLibelle.get(txt(r));
+      if (liste) liste.forEach(l => trouves.push(l));
+    }
+  });
+  return trouves;
+}
+
+function rattachements(ligneGroupement, code){
+  const listesDisponibles =
+    existeColonne(D.gCols, "Liste_ID_Projet_Action_AV") ||
+    existeColonne(D.gCols, "Liste_ID_Action_MEO") ||
+    existeColonne(D.gCols, "Liste_Tache_ID_Tâche", "Liste_Tache_ID_Tache");
+
+  const parListes = reglages.mode === "listes" && listesDisponibles;
+
+  const projets = new Set(), actions = new Set(), taches = new Set();
+
+  if (parListes){
+    const g = D.gAcces;
+    resoudre(g(ligneGroupement, "Liste_ID_Projet_Action_AV"), D.actions, D.aAcces, ["ID_Projet_Action_AV"])
+      .forEach(l => projets.add(l.id));
+    resoudre(g(ligneGroupement, "Liste_ID_Action_MEO"), D.actions, D.aAcces, ["ID_Action_MEO"])
+      .forEach(l => actions.add(l.id));
+    resoudre(g(ligneGroupement, "Liste_Tache_ID_Tâche", "Liste_Tache_ID_Tache"), D.taches, D.tAcces, ["ID_Tâche", "ID_Tache"])
+      .forEach(l => taches.add(l.id));
+  } else {
+    D.actions.forEach(l => {
+      if (txt(D.aAcces(l, "Groupement")) !== code) return;
+      const n = txt(D.aAcces(l, "Nature")).toUpperCase();
+      if (n === "MEO") actions.add(l.id); else projets.add(l.id);
+    });
+    D.taches.forEach(l => {
+      if (txt(D.tAcces(l, "Groupement")) === code) taches.add(l.id);
+    });
+  }
+
+  /* Une ligne listée comme projet mais de nature MEO est reclassée, et inversement. */
+  const projetsOk = new Set(), actionsOk = new Set(actions);
+  projets.forEach(id => {
+    const l = D.actions.find(x => x.id === id);
+    if (!l) return;
+    const n = txt(D.aAcces(l, "Nature")).toUpperCase();
+    if (n === "MEO") actionsOk.add(id); else projetsOk.add(id);
+  });
+
+  return { projets: projetsOk, actions: actionsOk, taches, parListes };
+}
+
+/* =========================================================
+   Construction de l'arborescence
+   ========================================================= */
+function construireEtat(code){
+  const ligneG = D.groupements.find(l => txt(D.gAcces(l, "Groupement")) === code)
+    || D.groupements.find(l => txt(D.gAcces(l, "Libellé_Groupement", "Libelle_Groupement")) === code);
+  if (!ligneG) return null;
+
+  const rat = rattachements(ligneG, code);
+  const f = lireFiltres();
+
+  const projetsParCle = new Map();
+  const actionsParCle = new Map();
+  D.actions.forEach(l => {
+    const a = lireAction(l);
+    if (a.nature === "MEO"){ if (a.cleAction) actionsParCle.set(a.cleAction, { ligne: l, a }); }
+    else if (a.cleProjet) projetsParCle.set(a.cleProjet, { ligne: l, a });
+  });
+
+  const arbre = new Map();   // clé projet -> noeud
+  const orphelins = [];      // lignes sans projet identifiable
+
+  function noeudProjet(cleProjet){
+    if (!cleProjet) return null;
+    if (!arbre.has(cleProjet)){
+      const p = projetsParCle.get(cleProjet);
+      arbre.set(cleProjet, {
+        cle: cleProjet,
+        a: p ? p.a : null,
+        direct: false,
+        actions: new Map(),
+        taches: []
+      });
+    }
+    return arbre.get(cleProjet);
+  }
+  function noeudAction(np, cleAction){
+    if (!np || !cleAction) return null;
+    if (!np.actions.has(cleAction)){
+      const m = actionsParCle.get(cleAction);
+      np.actions.set(cleAction, { cle: cleAction, a: m ? m.a : null, direct: false, taches: [] });
+    }
+    return np.actions.get(cleAction);
+  }
+
+  /* Projets rattachés */
+  rat.projets.forEach(id => {
+    const l = D.actions.find(x => x.id === id);
+    if (!l) return;
+    const a = lireAction(l);
+    const np = noeudProjet(a.cleProjet || ("#" + id));
+    if (np){ np.a = a; np.direct = true; }
+  });
+
+  /* Actions MEO rattachées */
+  rat.actions.forEach(id => {
+    const l = D.actions.find(x => x.id === id);
+    if (!l) return;
+    const a = lireAction(l);
+    const np = noeudProjet(a.cleProjet);
+    if (!np){ orphelins.push({ type: "action", a }); return; }
+    const na = noeudAction(np, a.cleAction || ("#" + id));
+    if (na){ na.a = a; na.direct = true; }
+  });
+
+  /* Tâches rattachées */
+  rat.taches.forEach(id => {
+    const l = D.taches.find(x => x.id === id);
+    if (!l) return;
+    const t = lireTache(l);
+    const np = noeudProjet(t.cleProjet);
+    if (!np){ orphelins.push({ type: "tache", t }); return; }
+    if (t.cleAction){
+      const na = noeudAction(np, t.cleAction);
+      na.taches.push(Object.assign({ direct: true }, t));
+    } else {
+      np.taches.push(Object.assign({ direct: true }, t));
+    }
+  });
+
+  /* Application des filtres */
+  const garderStatut = o => f.statuts.has(norm(o.statut));
+  const garderTexte = s => !f.texte || norm(s).includes(f.texte);
+  const garderCollab = o => !f.collaborateur || txt(o.porteur) === f.collaborateur;
+
+  const projetsFinaux = [];
+  arbre.forEach(np => {
+    const actionsFinales = [];
+    np.actions.forEach(na => {
+      const taches = f.taches ? na.taches.filter(t =>
+        garderStatut(t) && garderCollab(t) && (garderTexte(t.libelle) || garderTexte(na.cle))) : [];
+      const actionVisible = f.actions && na.direct
+        && (!na.a || (garderStatut(na.a) && garderCollab(na.a)))
+        && garderTexte(na.cle);
+      if (actionVisible || taches.length){
+        actionsFinales.push({ noeud: na, taches, direct: na.direct && actionVisible });
+      }
+    });
+    const tachesProjet = f.taches ? np.taches.filter(t =>
+      garderStatut(t) && garderCollab(t) && (garderTexte(t.libelle) || garderTexte(np.cle))) : [];
+    const projetVisible = f.projets && np.direct
+      && (!np.a || (garderStatut(np.a) && garderCollab(np.a)))
+      && garderTexte(np.cle);
+
+    if (projetVisible || actionsFinales.length || tachesProjet.length){
+      projetsFinaux.push({
+        noeud: np,
+        direct: np.direct && projetVisible,
+        actions: actionsFinales,
+        taches: tachesProjet
+      });
+    }
+  });
+
+  projetsFinaux.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr"));
+  projetsFinaux.forEach(p => p.actions.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr")));
+
+  /* Compteurs : uniquement les lignes réellement rattachées au groupement */
+  const compte = { projets: 0, actions: 0, taches: 0, statuts: {} };
+  const compter = o => {
+    const c = couleurAvancement(o.pourcent, o.interrompu).libelle;
+    const cle = o.interrompu ? "Interrompu" : (o.pourcent >= 100 ? "Terminé" : o.pourcent > 0 ? "En cours" : "À engager");
+    compte.statuts[cle] = (compte.statuts[cle] || 0) + 1;
+    return c;
+  };
+  projetsFinaux.forEach(p => {
+    if (p.direct && p.noeud.a){ compte.projets++; compter(p.noeud.a); }
+    p.actions.forEach(a => {
+      if (a.direct && a.noeud.a){ compte.actions++; compter(a.noeud.a); }
+      a.taches.forEach(t => { compte.taches++; compter(t); });
+    });
+    p.taches.forEach(t => { compte.taches++; compter(t); });
+  });
+
+  return {
+    code,
+    libelle: txt(D.gAcces(ligneG, "Libellé_Groupement", "Libelle_Groupement")) || code,
+    chef: txt(D.gAcces(ligneG, "Chef_Groupement")),
+    sousDirection: txt(D.gAcces(ligneG, "Sous-direction", "Sous_direction")),
+    sponsor: txt(D.gAcces(ligneG, "Sponsor_CODIR")),
+    parListes: rat.parListes,
+    projets: projetsFinaux,
+    orphelins,
+    compte
+  };
+}
+
+function lireFiltres(){
+  const statuts = new Set();
+  document.querySelectorAll("input.stat:checked").forEach(c => statuts.add(norm(c.value)));
+  if (statuts.has(norm("A engager"))) statuts.add(norm("À engager"));
+  return {
+    texte: norm(document.getElementById("recherche").value),
+    collaborateur: document.getElementById("selCollaborateur").value,
+    projets: document.getElementById("nvProjets").checked,
+    actions: document.getElementById("nvActions").checked,
+    taches: document.getElementById("nvTaches").checked,
+    contexte: document.getElementById("chkContexte").checked,
+    statuts
+  };
+}
+
+/* =========================================================
+   Rendu
+   ========================================================= */
+function pastille(o){
+  const c = couleurAvancement(o.pourcent, o.interrompu);
+  return '<span class="pastille' + (c.clair ? " claire" : "") + '" style="background:' + c.fond + '">'
+    + echapper(c.libelle) + "</span>";
+}
+
+function ligneHtml(classe, cle, obj, direct, contexte, avecRepli){
+  if (!contexte && !direct) return "";
+  const o = obj || { pourcent: 0, interrompu: false, porteur: "", echeance: "" };
+  const bouts = [];
+  bouts.push('<div class="ligne ' + classe + (direct ? "" : " contexte") + '">');
+  bouts.push(avecRepli
+    ? '<span class="repli" data-cle="' + echapper(cle) + '">' + (replies.has(cle) ? "▸" : "▾") + "</span>"
+    : '<span class="repli vide">·</span>');
+  bouts.push('<span class="titre">' + echapper(cle) + "</span>");
+  if (o.porteur) bouts.push('<span class="info">' + echapper(o.porteur) + "</span>");
+  if (o.echeance) bouts.push('<span class="info">éch. ' + echapper(o.echeance) + "</span>");
+  if (obj) bouts.push(pastille(o));
+  bouts.push("</div>");
+  return bouts.join("");
+}
+
+function etatHtml(etat, pourImpression){
+  const f = lireFiltres();
+  const c = etat.compte;
+  const total = c.projets + c.actions + c.taches;
+  const ordre = ["À engager", "En cours", "Terminé", "Interrompu"];
+  const couleurs = { "À engager": "#C0504D", "En cours": "#F79646", "Terminé": "#9BBB59", "Interrompu": "#4A4A4A" };
+
+  const h = [];
+  h.push('<div class="entete-grp">');
+  h.push("<h2>" + echapper(etat.libelle) + " <span style=\"font-weight:normal;font-size:13px\">(" + echapper(etat.code) + ")</span></h2>");
+  const meta = [];
+  if (etat.chef) meta.push("Chef de groupement : <b>" + echapper(etat.chef) + "</b>");
+  if (etat.sousDirection) meta.push("Sous-direction : <b>" + echapper(etat.sousDirection) + "</b>");
+  if (etat.sponsor) meta.push("Sponsor CODIR : <b>" + echapper(etat.sponsor) + "</b>");
+  if (meta.length) h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
+  h.push("</div>");
+
+  if (!etat.parListes){
+    h.push('<div class="avertissement">Rattachement calculé depuis la colonne Groupement de chaque ligne : les listes de la table Groupement sont absentes ou vides.</div>');
+  }
+
+  h.push('<div class="compteurs">');
+  h.push('<div class="compteur"><div class="n">' + c.projets + '</div><div class="l">projets rattachés</div></div>');
+  h.push('<div class="compteur"><div class="n">' + c.actions + '</div><div class="l">actions MEO</div></div>');
+  h.push('<div class="compteur"><div class="n">' + c.taches + '</div><div class="l">tâches</div></div>');
+  h.push("</div>");
+
+  if (total){
+    h.push('<div class="repartition">');
+    ordre.forEach(s => {
+      const n = c.statuts[s] || 0;
+      if (n) h.push('<div style="width:' + (n / total * 100) + '%;background:' + couleurs[s] + '"></div>');
+    });
+    h.push("</div>");
+    h.push('<div class="legende">');
+    ordre.forEach(s => {
+      const n = c.statuts[s] || 0;
+      if (n) h.push('<span><i class="puce" style="background:' + couleurs[s] + '"></i>' + s + " : " + n + "</span>");
+    });
+    h.push("</div>");
+  }
+
+  if (!etat.projets.length){
+    h.push('<div class="vide-etat">Aucune ligne rattachée à ce groupement avec les filtres actuels.</div>');
+    return h.join("");
+  }
+
+  etat.projets.forEach(p => {
+    const replie = replies.has(p.noeud.cle) && !pourImpression;
+    h.push('<div class="bloc-projet">');
+    h.push(ligneHtml("projet", p.noeud.cle, p.noeud.a, p.direct || f.contexte, true, true));
+    if (!replie){
+      p.actions.forEach(a => {
+        h.push(ligneHtml("action", a.noeud.cle, a.noeud.a, a.direct || f.contexte, true, false));
+        a.taches.forEach(t => {
+          h.push(ligneHtml("tache", t.libelle, t, true, true, false));
+        });
+      });
+      p.taches.forEach(t => {
+        h.push(ligneHtml("tache", t.libelle, t, true, true, false));
+      });
+    }
+    h.push("</div>");
+  });
+
+  if (etat.orphelins.length){
+    h.push('<div class="bloc-projet">');
+    h.push('<div class="ligne projet"><span class="repli vide">·</span><span class="titre">Sans projet identifié</span></div>');
+    etat.orphelins.forEach(o => {
+      if (o.type === "action") h.push(ligneHtml("action", o.a.cleAction, o.a, true, true, false));
+      else h.push(ligneHtml("tache", o.t.libelle, o.t, true, true, false));
+    });
+    h.push("</div>");
+  }
+
+  return h.join("");
+}
+
+function afficher(){
+  const zone = document.getElementById("contenu");
+  if (!D.pretes){ zone.innerHTML = '<div class="vide-etat">Chargement des données…</div>'; return; }
+  if (!groupementCourant){ zone.innerHTML = '<div class="vide-etat">Choisissez un groupement.</div>'; return; }
+  const etat = construireEtat(groupementCourant);
+  if (!etat){ zone.innerHTML = '<div class="vide-etat">Groupement introuvable.</div>'; return; }
+  zone.innerHTML =
+    '<div class="entete-impression"><div class="t">État par groupement — ' + echapper(etat.libelle)
+    + '</div><div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
+    + '<div class="section-impression">' + etatHtml(etat, false) + "</div>";
+  brancherReplis();
+  majCollaborateurs(etat);
+}
+
+function brancherReplis(){
+  document.querySelectorAll(".repli[data-cle]").forEach(el => {
+    el.addEventListener("click", () => {
+      const cle = el.getAttribute("data-cle");
+      if (replies.has(cle)) replies.delete(cle); else replies.add(cle);
+      afficher();
+    });
+  });
+}
+
+function majCollaborateurs(etat){
+  const sel = document.getElementById("selCollaborateur");
+  const actuel = sel.value;
+  const noms = new Set();
+  D.collaborateurs.forEach(l => {
+    if (txt(D.cAcces(l, "Groupement")) === etat.code){
+      const n = txt(D.cAcces(l, "Nom_Prénom", "Nom_Prenom", "Nom"));
+      if (n) noms.add(n);
+    }
+  });
+  const liste = Array.from(noms).sort((a, b) => a.localeCompare(b, "fr"));
+  sel.innerHTML = '<option value="">Tous</option>'
+    + liste.map(n => '<option value="' + echapper(n) + '">' + echapper(n) + "</option>").join("");
+  if (liste.includes(actuel)) sel.value = actuel;
+}
+
+/* =========================================================
+   Impression
+   ========================================================= */
+function imprimerCourant(){
+  window.print();
+}
+
+function imprimerTous(){
+  const zone = document.getElementById("contenu");
+  const sauvegarde = zone.innerHTML;
+  const codes = D.groupements
+    .map(l => txt(D.gAcces(l, "Groupement")))
+    .filter(Boolean);
+  const morceaux = codes.map(code => {
+    const e = construireEtat(code);
+    return e ? '<div class="section-impression">' + etatHtml(e, true) + "</div>" : "";
+  });
+  zone.innerHTML =
+    '<div class="entete-impression"><div class="t">État par groupement — tous les groupements</div>'
+    + '<div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
+    + morceaux.join("");
+  window.print();
+  setTimeout(() => { zone.innerHTML = sauvegarde; brancherReplis(); }, 800);
+}
+
+/* =========================================================
+   Interface
+   ========================================================= */
+function remplirGroupements(){
+  const sel = document.getElementById("selGroupement");
+  const items = D.groupements.map(l => ({
+    code: txt(D.gAcces(l, "Groupement")),
+    libelle: txt(D.gAcces(l, "Libellé_Groupement", "Libelle_Groupement"))
+  })).filter(x => x.code);
+  items.sort((a, b) => (a.libelle || a.code).localeCompare(b.libelle || b.code, "fr"));
+  sel.innerHTML = items.map(x =>
+    '<option value="' + echapper(x.code) + '">' + echapper(x.libelle || x.code) + " (" + echapper(x.code) + ")</option>"
+  ).join("");
+  if (items.length){
+    groupementCourant = items[0].code;
+    sel.value = groupementCourant;
+  }
+}
+
+function brancherInterface(){
+  document.getElementById("selGroupement").addEventListener("change", e => {
+    groupementCourant = e.target.value;
+    replies = new Set();
+    afficher();
+  });
+  ["recherche", "selCollaborateur", "nvProjets", "nvActions", "nvTaches", "chkContexte"]
+    .forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener(el.tagName === "INPUT" && el.type === "search" ? "input" : "change", afficher);
+    });
+  document.querySelectorAll("input.stat").forEach(c => c.addEventListener("change", afficher));
+  document.getElementById("btnImprimer").addEventListener("click", imprimerCourant);
+  document.getElementById("btnTous").addEventListener("click", imprimerTous);
+
+  const panneau = document.getElementById("panneauReglages");
+  document.getElementById("btnReglages").addEventListener("click", () => {
+    document.getElementById("tGroupement").value = reglages.tGroupement;
+    document.getElementById("tCollaborateur").value = reglages.tCollaborateur;
+    document.getElementById("tAction").value = reglages.tAction;
+    document.getElementById("tTache").value = reglages.tTache;
+    document.getElementById("mode").value = reglages.mode;
+    panneau.classList.add("ouvert");
+  });
+  document.getElementById("btnAnnulerReglages").addEventListener("click", () => panneau.classList.remove("ouvert"));
+  document.getElementById("btnEnregistrerReglages").addEventListener("click", async () => {
+    reglages = {
+      tGroupement: document.getElementById("tGroupement").value.trim() || REGLAGES_DEFAUT.tGroupement,
+      tCollaborateur: document.getElementById("tCollaborateur").value.trim() || REGLAGES_DEFAUT.tCollaborateur,
+      tAction: document.getElementById("tAction").value.trim() || REGLAGES_DEFAUT.tAction,
+      tTache: document.getElementById("tTache").value.trim() || REGLAGES_DEFAUT.tTache,
+      mode: document.getElementById("mode").value
+    };
+    panneau.classList.remove("ouvert");
+    try { await grist.widgetApi.setOptions(reglages); } catch (e) { /* options indisponibles */ }
+    await demarrerDonnees();
+  });
+}
+
+async function demarrerDonnees(){
+  const zone = document.getElementById("contenu");
+  try {
+    zone.innerHTML = '<div class="vide-etat">Chargement des données…</div>';
+    await charger();
+    remplirGroupements();
+    afficher();
+  } catch (err){
+    zone.innerHTML = '<div class="avertissement">Impossible de lire les tables. Vérifiez leurs noms dans les réglages et l\'accès complet au document.<br>'
+      + echapper(err && err.message ? err.message : err) + "</div>";
+  }
+}
+
+/* =========================================================
+   Démarrage
+   ========================================================= */
+grist.ready({
+  requiredAccess: "full",
+  onEditOptions: () => document.getElementById("btnReglages").click()
+});
+
+grist.onOptions(async (options) => {
+  if (options) reglages = Object.assign({}, REGLAGES_DEFAUT, options);
+});
+
+(async function init(){
+  brancherInterface();
+  try {
+    const o = await grist.widgetApi.getOptions();
+    if (o) reglages = Object.assign({}, REGLAGES_DEFAUT, o);
+  } catch (e) { /* première ouverture */ }
+  await demarrerDonnees();
+})();
+</script>
+</body>
+</html>
