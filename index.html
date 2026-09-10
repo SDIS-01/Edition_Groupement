@@ -70,6 +70,12 @@
   .pastille{flex:0 0 auto;font-size:11px;padding:1px 7px;border-radius:9px;color:#fff;white-space:nowrap;}
   .pastille.claire{color:#3a3000;}
   .info{flex:0 0 auto;font-size:11px;color:var(--attenue);white-space:nowrap;}
+  .groupe-porteur{
+    margin:15px 0 5px;font-size:12px;font-weight:bold;color:var(--bleu);
+    text-transform:uppercase;letter-spacing:.4px;
+    border-bottom:1px solid var(--trait);padding-bottom:2px;
+  }
+  .groupe-porteur:first-of-type{margin-top:4px;}
   .vide-etat{padding:26px 4px;color:var(--attenue);}
   .avertissement{background:#fff8e1;border:1px solid #ffcc00;border-radius:3px;
     padding:7px 10px;margin-bottom:10px;font-size:12px;}
@@ -94,6 +100,7 @@
     .entete-impression .t{color:var(--bleu);font-weight:bold;font-size:13pt;}
     .entete-impression .d{font-size:9pt;color:var(--attenue);}
     .bloc-projet,.ligne{break-inside:avoid;page-break-inside:avoid;}
+    .groupe-porteur{break-after:avoid;page-break-after:avoid;}
     .pastille,.ligne.projet,.repartition div,.puce{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .section-impression + .section-impression{page-break-before:always;}
   }
@@ -803,6 +810,8 @@ function lireFiltres(){
 /* =========================================================
    Rendu
    ========================================================= */
+const SANS_PORTEUR = "Sans porteur identifié";
+
 function pastille(o){
   const c = couleurAvancement(o.pourcent, o.interrompu);
   return '<span class="pastille' + (c.clair ? " claire" : "") + '" style="background:' + c.fond + '">'
@@ -900,18 +909,33 @@ function etatHtml(etat, pourImpression){
     return h.join("");
   }
 
+  const parPorteur = new Map();
   etat.projets.forEach(p => {
-    const replie = replies.has(p.noeud.cle) && !pourImpression;
-    h.push('<div class="bloc-projet">');
-    h.push(ligneHtml("projet", p.noeud.cle, p.direct ? p.noeud.a : null, true, true, p.noeud.cle));
-    if (!replie){
-      p.actions.forEach(a => {
-        h.push(ligneHtml("action", a.noeud.cle, a.direct ? a.noeud.a : null, true, false, ""));
-        a.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
-      });
-      p.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
-    }
-    h.push("</div>");
+    const po = (p.noeud.a && p.noeud.a.porteur) || SANS_PORTEUR;
+    if (!parPorteur.has(po)) parPorteur.set(po, []);
+    parPorteur.get(po).push(p);
+  });
+  const porteurs = Array.from(parPorteur.keys()).sort((a, b) => {
+    if (a === SANS_PORTEUR) return 1;
+    if (b === SANS_PORTEUR) return -1;
+    return a.localeCompare(b, "fr");
+  });
+
+  porteurs.forEach(po => {
+    h.push('<div class="groupe-porteur">' + echapper(po) + "</div>");
+    parPorteur.get(po).forEach(p => {
+      const replie = replies.has(p.noeud.cle) && !pourImpression;
+      h.push('<div class="bloc-projet">');
+      h.push(ligneHtml("projet", p.noeud.cle, p.direct ? p.noeud.a : null, true, true, p.noeud.cle));
+      if (!replie){
+        p.actions.forEach(a => {
+          h.push(ligneHtml("action", a.noeud.cle, a.direct ? a.noeud.a : null, true, false, ""));
+          a.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
+        });
+        p.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
+      }
+      h.push("</div>");
+    });
   });
 
   if (etat.orphelins.length){
