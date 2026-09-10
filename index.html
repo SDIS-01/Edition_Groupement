@@ -1065,7 +1065,7 @@ function aplatir(etat){
     tache: x.type === "action" ? "" : x.libelle, o: x.o }));
   etat.mec.forEach(o => lignes.push({ famille: "MEC 2023", categorie: o.categorie || "",
     niveau: "annexe", projet: o.libelle, action: "", tache: "", o }));
-  etat.papripact.forEach(o => lignes.push({ famille: "PAPRIPACT", categorie: o.categorie || "",
+  etat.papripact.forEach(o => lignes.push({ famille: "PAPRIPACT", categorie: "Action_DUERP",
     niveau: "annexe", projet: o.libelle, action: "", tache: "", o }));
   return lignes;
 }
