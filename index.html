@@ -60,7 +60,7 @@
   .ligne.projet{background:var(--bleu-clair);}
   .ligne.projet .titre{font-weight:bold;color:var(--bleu);font-size:13px;}
   .ligne.action{padding-left:26px;background:#fafbfe;}
-  .ligne.action .titre{font-weight:bold;font-size:12px;}
+  .ligne.action .titre{font-size:12px;}
   .ligne.tache{padding-left:46px;}
   .ligne.tache .titre{font-size:12px;}
   .ligne.contexte{opacity:.55;font-style:italic;}
@@ -95,8 +95,7 @@
     .entete-impression .d{font-size:9pt;color:var(--attenue);}
     .bloc-projet,.ligne{break-inside:avoid;page-break-inside:avoid;}
     .pastille,.ligne.projet,.repartition div,.puce{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .section-impression{page-break-before:always;}
-    .section-impression:first-of-type{page-break-before:auto;}
+    .section-impression + .section-impression{page-break-before:always;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
@@ -500,7 +499,8 @@ function lireAnnexe(tableId, ligne, facteur, clesLibelle){
   return {
     id: ligne.id,
     libelle: libelle || ("Ligne " + ligne.id),
-    categorie: texte(tableId, ligne, "Reccomandation_Rappel", "Recommandation_Rappel", "Catégorie", "Categorie", "Type"),
+    categorie: texte(tableId, ligne, "Reccomandation_Rappel", "Recommandation_Rappel",
+      "Action_DUERP", "Catégorie", "Categorie", "Type", "Nature"),
     porteur: texte(tableId, ligne, "Porteur"),
     groupement: texte(tableId, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
@@ -997,8 +997,7 @@ function imprimerTous(){
    ========================================================= */
 /* Gamme beige et taupe, texte brun sombre plutôt que noir. */
 const TAUPE = "FF8C8070";        // en-tête de tableau
-const BEIGE_PROJET = "FFF0EAE0";
-const BEIGE_ACTION = "FFF9F6F1";
+const BEIGE_CONTEXTE = "FFF9F6F1";
 const BORDURE = "FFD8D0C4";
 const ENCRE = "FF3E382F";
 const ENCRE_PALE = "FF9A9184";
@@ -1017,28 +1016,31 @@ function chargerExcelJS(){
   return exceljsPret;
 }
 
-/* L'arborescence affichée, mise à plat pour le tableur. */
+/* Mise à plat : une ligne par élément, le libellé porté par la colonne de son niveau. */
 function aplatir(etat){
   const lignes = [];
   etat.projets.forEach(p => {
-    lignes.push({ niveau: "Projet", libelle: p.noeud.cle, projet: p.noeud.cle, action: "",
-      o: p.direct ? p.noeud.a : null, direct: p.direct, profondeur: 0 });
+    const grp = p.noeud.a ? p.noeud.a.groupement : "";
+    lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "projet",
+      projet: p.noeud.cle, action: "", tache: "", o: p.direct ? p.noeud.a : null });
     p.actions.forEach(a => {
-      lignes.push({ niveau: "Action MEO", libelle: a.noeud.cle, projet: p.noeud.cle, action: a.noeud.cle,
-        o: a.direct ? a.noeud.a : null, direct: a.direct, profondeur: 1 });
-      a.taches.forEach(t => lignes.push({ niveau: "Tâche", libelle: t.libelle, projet: p.noeud.cle,
-        action: a.noeud.cle, o: t, direct: true, profondeur: 2 }));
+      lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "action",
+        projet: p.noeud.cle, action: a.noeud.cle, tache: "", o: a.direct ? a.noeud.a : null });
+      a.taches.forEach(t => lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "tache",
+        projet: p.noeud.cle, action: a.noeud.cle, tache: t.libelle, o: t }));
     });
-    p.taches.forEach(t => lignes.push({ niveau: "Tâche", libelle: t.libelle, projet: p.noeud.cle,
-      action: "", o: t, direct: true, profondeur: 2 }));
+    p.taches.forEach(t => lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "tache",
+      projet: p.noeud.cle, action: "", tache: t.libelle, o: t }));
   });
   etat.orphelins.forEach(x => lignes.push({
-    niveau: x.type === "action" ? "Action MEO" : "Tâche", libelle: x.libelle,
-    projet: "", action: "", o: x.o, direct: true, profondeur: 1 }));
-  etat.mec.forEach(o => lignes.push({ niveau: "MEC 2023", libelle: o.libelle,
-    projet: o.categorie || "", action: "", o, direct: true, profondeur: 0 }));
-  etat.papripact.forEach(o => lignes.push({ niveau: "PAPRIPACT", libelle: o.libelle,
-    projet: "", action: "", o, direct: true, profondeur: 0 }));
+    famille: "Projet_Action", categorie: x.o.groupement || "",
+    niveau: x.type === "action" ? "action" : "tache",
+    projet: "", action: x.type === "action" ? x.libelle : "",
+    tache: x.type === "action" ? "" : x.libelle, o: x.o }));
+  etat.mec.forEach(o => lignes.push({ famille: "MEC 2023", categorie: o.categorie || "",
+    niveau: "annexe", projet: o.libelle, action: "", tache: "", o }));
+  etat.papripact.forEach(o => lignes.push({ famille: "PAPRIPACT", categorie: o.categorie || "",
+    niveau: "annexe", projet: o.libelle, action: "", tache: "", o }));
   return lignes;
 }
 
@@ -1052,39 +1054,78 @@ function couleurExcel(o){
   return "FFE5C4BE";
 }
 
-function styleLigne(cellules, ligne){
-  const nature = ligne.niveau;
-  const contexte = !ligne.o;
-  cellules.forEach(c => {
-    c.font = {
-      name: "Tahoma", size: 9,
-      bold: nature === "Projet",
-      italic: contexte,
-      color: { argb: contexte ? ENCRE_PALE : ENCRE }
-    };
-    c.alignment = { vertical: "top", wrapText: true };
-    c.border = { bottom: { style: "hair", color: { argb: BORDURE } } };
-    if (nature === "Projet") c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BEIGE_PROJET } };
-    else if (nature === "Action MEO") c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BEIGE_ACTION } };
+const COLONNES_ETAT = [
+  { titre: "Niveau", largeur: 15, centre: true },
+  { titre: "Catégorie", largeur: 17, centre: true },
+  { titre: "Projet_Action", largeur: 42 },
+  { titre: "Action (MEO)", largeur: 35 },
+  { titre: "Tâche", largeur: 32 },
+  { titre: "Porteur", largeur: 24, centre: true },
+  { titre: "Échéance", largeur: 14, centre: true },
+  { titre: "Avct", largeur: 11, centre: true },
+  { titre: "Statut", largeur: 14, centre: true }
+];
+
+/* Sur la feuille d'un groupement, le parent figure déjà sur sa propre ligne : on ne le répète
+   pas. Sur le récapitulatif, on le répète pour que le tri et le filtre restent exploitables. */
+function colonnesLibelle(l, repeterParents){
+  if (l.niveau === "projet" || l.niveau === "annexe") return [l.projet, "", ""];
+  if (l.niveau === "action") return [repeterParents ? l.projet : "", l.action, ""];
+  return [repeterParents ? l.projet : "", repeterParents ? l.action : "", l.tache];
+}
+
+function ecrireEntete(ws, colonnes){
+  const entete = ws.getRow(1);
+  entete.values = colonnes.map(c => c.titre);
+  entete.eachCell(cell => {
+    cell.font = { name: "Tahoma", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TAUPE } };
+    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
   });
+  entete.height = 18;
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: colonnes.length } };
+  ws.pageSetup.printTitlesRow = "1:1";
 }
 
-function cellulesAvancement(cellAvct, cellStatut, o){
-  if (!o){ cellAvct.value = null; cellStatut.value = ""; return; }
-  cellAvct.value = o.pourcent / 100;
-  cellAvct.numFmt = "0 %";
-  cellAvct.alignment = { horizontal: "center", vertical: "top" };
-  cellAvct.fill = { type: "pattern", pattern: "solid", fgColor: { argb: couleurExcel(o) } };
-  cellAvct.font = { name: "Tahoma", size: 9, color: { argb: ENCRE } };
-  cellAvct.border = { bottom: { style: "hair", color: { argb: BORDURE } } };
-  cellStatut.value = o.statut;
-}
+function ecrireLigne(ws, l, colonnes, prefixe, repeterParents){
+  const [cProjet, cAction, cTache] = colonnesLibelle(l, repeterParents);
+  const contexte = !l.o;
+  const r = ws.addRow(prefixe.concat([
+    l.famille, l.categorie, cProjet, cAction, cTache,
+    l.o ? l.o.porteur : "", null, null, l.o ? l.o.statut : ""
+  ]));
 
-function celluleEcheance(cell, o){
-  if (!o || !o.echeanceDate){ cell.value = null; return; }
-  cell.value = o.echeanceDate;
-  cell.numFmt = "dd/mm/yyyy";
-  cell.alignment = { horizontal: "center", vertical: "top" };
+  const decalage = prefixe.length;
+  const iCategorie = decalage + 2;
+  const libelles = [decalage + 3, decalage + 4, decalage + 5];
+  const iEcheance = decalage + 7;
+  const iAvct = decalage + 8;
+
+  colonnes.forEach((col, i) => {
+    const cell = r.getCell(i + 1);
+    const estLibelle = libelles.includes(i + 1);
+    const taupe = (i + 1) === iCategorie || (contexte && estLibelle);
+    cell.font = { name: "Tahoma", size: 10, italic: contexte,
+      color: { argb: taupe ? TAUPE : ENCRE } };
+    cell.alignment = {
+      vertical: "middle", wrapText: true,
+      horizontal: col.centre ? "center" : "left"
+    };
+    cell.border = { bottom: { style: "hair", color: { argb: BORDURE } } };
+    if (contexte) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BEIGE_CONTEXTE } };
+  });
+
+  if (l.o && l.o.echeanceDate){
+    const cell = r.getCell(iEcheance);
+    cell.value = l.o.echeanceDate;
+    cell.numFmt = "dd/mm/yyyy";
+  }
+  if (l.o){
+    const cell = r.getCell(iAvct);
+    cell.value = l.o.pourcent / 100;
+    cell.numFmt = "0 %";
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: couleurExcel(l.o) } };
+  }
 }
 
 function nomFeuille(etat, prises){
@@ -1095,88 +1136,30 @@ function nomFeuille(etat, prises){
   return nom;
 }
 
-function ajouterFeuilleGroupement(wb, etat, prises){
-  const ws = wb.addWorksheet(nomFeuille(etat, prises), {
-    pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+function preparerFeuille(wb, nom, colonnes, paysage){
+  const ws = wb.addWorksheet(nom, {
+    pageSetup: { paperSize: 9, orientation: paysage ? "landscape" : "portrait",
+      fitToPage: true, fitToWidth: 1, fitToHeight: 0,
       margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } },
     views: [{ state: "frozen", ySplit: 1 }]
   });
+  ws.columns = colonnes.map(c => ({ width: c.largeur }));
+  ecrireEntete(ws, colonnes);
+  return ws;
+}
 
-  ws.columns = [
-    { key: "niveau", width: 13 },
-    { key: "libelle", width: 68 },
-    { key: "porteur", width: 24 },
-    { key: "echeance", width: 12 },
-    { key: "avancement", width: 12 },
-    { key: "statut", width: 14 }
-  ];
-
-  const entete = ws.getRow(1);
-  entete.values = ["Niveau", "Libellé", "Porteur", "Échéance", "Avancement", "Statut"];
-  entete.eachCell(cell => {
-    cell.font = { name: "Tahoma", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TAUPE } };
-    cell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
-  });
-  entete.height = 18;
-
-  aplatir(etat).forEach(l => {
-    const r = ws.addRow([l.niveau, l.libelle, l.o ? l.o.porteur : "", null, null, ""]);
-    styleLigne([r.getCell(1), r.getCell(2), r.getCell(3), r.getCell(4), r.getCell(6)], l);
-    r.getCell(2).alignment = { vertical: "top", wrapText: true, indent: l.profondeur * 2 };
-    celluleEcheance(r.getCell(4), l.o);
-    cellulesAvancement(r.getCell(5), r.getCell(6), l.o);
-  });
-
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 6 } };
-  ws.pageSetup.printTitlesRow = "1:1";
+function ajouterFeuilleGroupement(wb, etat, prises){
+  const ws = preparerFeuille(wb, nomFeuille(etat, prises), COLONNES_ETAT, false);
+  aplatir(etat).forEach(l => ecrireLigne(ws, l, COLONNES_ETAT, [], false));
   return ws;
 }
 
 function ajouterFeuilleRecap(wb, etats){
-  const ws = wb.addWorksheet("Récapitulatif", {
-    pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
-    views: [{ state: "frozen", ySplit: 1 }]
-  });
-
-  ws.columns = [
-    { key: "groupement", width: 13 },
-    { key: "niveau", width: 13 },
-    { key: "projet", width: 42 },
-    { key: "action", width: 42 },
-    { key: "libelle", width: 52 },
-    { key: "porteur", width: 24 },
-    { key: "echeance", width: 12 },
-    { key: "avancement", width: 12 },
-    { key: "statut", width: 14 },
-    { key: "rattachement", width: 14 }
-  ];
-
-  const entete = ws.getRow(1);
-  entete.values = ["Groupement", "Niveau", "Projet", "Action MEO", "Libellé",
-    "Porteur", "Échéance", "Avancement", "Statut", "Rattachement"];
-  entete.eachCell(cell => {
-    cell.font = { name: "Tahoma", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TAUPE } };
-    cell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
-  });
-  entete.height = 18;
-
+  const colonnes = [{ titre: "Groupement", largeur: 13, centre: true }].concat(COLONNES_ETAT);
+  const ws = preparerFeuille(wb, "Récapitulatif", colonnes, true);
   etats.forEach(etat => {
-    aplatir(etat).forEach(l => {
-      const r = ws.addRow([
-        etat.code, l.niveau, l.projet, l.action, l.libelle,
-        l.o ? l.o.porteur : "", null, null, "",
-        l.o ? "Rattaché" : "Contexte"
-      ]);
-      styleLigne([1, 2, 3, 4, 5, 6, 7, 9, 10].map(i => r.getCell(i)), l);
-      celluleEcheance(r.getCell(7), l.o);
-      cellulesAvancement(r.getCell(8), r.getCell(9), l.o);
-    });
+    aplatir(etat).forEach(l => ecrireLigne(ws, l, colonnes, [etat.code], true));
   });
-
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 10 } };
-  ws.pageSetup.printTitlesRow = "1:1";
   return ws;
 }
 
