@@ -1070,14 +1070,14 @@ function aplatir(etat){
   return lignes;
 }
 
-/* Teintes sourdes reprenant la sémantique de la charte, en version claire. */
+/* Colonne Avct : couleurs franches de la charte, le reste de la feuille restant en beige. */
 function couleurExcel(o){
   if (!o) return null;
-  if (o.interrompu) return "FFD9D4CC";
-  if (o.pourcent >= 100) return "FFCFD9B5";
-  if (o.pourcent >= 50) return "FFF0E2B0";
-  if (o.pourcent >= 1) return "FFEFD3B4";
-  return "FFE5C4BE";
+  if (o.interrompu) return { fond: "FF8C8070", blanc: true };
+  if (o.pourcent >= 100) return { fond: "FF9BBB59", blanc: false };
+  if (o.pourcent >= 50) return { fond: "FFFFCC00", blanc: false };
+  if (o.pourcent >= 1) return { fond: "FFF79646", blanc: false };
+  return { fond: "FFC0504D", blanc: true };
 }
 
 const COLONNES_ETAT = [
@@ -1148,9 +1148,12 @@ function ecrireLigne(ws, l, colonnes, prefixe, repeterParents){
   }
   if (l.o){
     const cell = r.getCell(iAvct);
+    const couleur = couleurExcel(l.o);
     cell.value = l.o.pourcent / 100;
     cell.numFmt = "0 %";
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: couleurExcel(l.o) } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: couleur.fond } };
+    cell.font = { name: "Tahoma", size: 10, bold: true,
+      color: { argb: couleur.blanc ? "FFFFFFFF" : ENCRE } };
   }
 }
 
