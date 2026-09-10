@@ -61,6 +61,7 @@
   .ligne.projet .titre{font-weight:bold;color:var(--bleu);font-size:13px;}
   .ligne.action{padding-left:26px;background:#fafbfe;}
   .ligne.action .titre{font-size:12px;}
+  .ligne.rubrique .titre{font-weight:bold;}
   .ligne.tache{padding-left:46px;}
   .ligne.tache .titre{font-size:12px;}
   .ligne.contexte{opacity:.55;font-style:italic;}
@@ -844,7 +845,7 @@ function sectionAnnexe(titre, lignes, grouperParCategorie){
   lignes.forEach(o => {
     if (grouperParCategorie && o.categorie && o.categorie !== categorieCourante){
       categorieCourante = o.categorie;
-      h.push('<div class="ligne action"><span class="repli vide">·</span><span class="titre">'
+      h.push('<div class="ligne action rubrique"><span class="repli vide">·</span><span class="titre">'
         + echapper(categorieCourante) + "</span></div>");
     }
     h.push(ligneHtml(grouperParCategorie && categorieCourante ? "tache" : "action", o.libelle, o, true, false, ""));
