@@ -700,7 +700,9 @@ function construireEtat(code){
     const t = lireTache(l);
     const np = noeudProjet(t.cleProjet);
     if (!np){ orphelins.push({ type: "tache", o: t, libelle: t.libelle }); return; }
-    if (t.cleAction) noeudAction(np, t.cleAction).taches.push(t);
+    /* Certaines tâches référencent leur projet dans ID_Action_MEO : sans ligne de nature MEO
+       correspondante, il n'y a pas d'action, la tâche se rattache directement au projet. */
+    if (t.cleAction && actionsParCle.has(t.cleAction)) noeudAction(np, t.cleAction).taches.push(t);
     else np.taches.push(t);
   });
 
