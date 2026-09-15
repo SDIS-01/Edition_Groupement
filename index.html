@@ -469,6 +469,13 @@ function etatStatut(statutBrut, pourcent, interrompu){
   return pourcent >= 100 ? "Terminé" : pourcent > 0 ? "En cours" : "A engager";
 }
 
+/* Les valeurs « Groupement_xxx » ne sont pas de vrais services : elles sont ignorées
+   (ni liste de sélection, ni PDF, ni Excel). */
+function serviceReel(v){
+  const s = txt(v);
+  return /^groupement_/i.test(s) ? "" : s;
+}
+
 function lireAction(ligne){
   const T = reglages.tAction, ctx = ctxDe(T);
   const brut = Number(ctx.brut(ligne, "Avancement"));
@@ -483,7 +490,7 @@ function lireAction(ligne){
     cleAction: texte(T, ligne, "ID_Action_MEO"),
     nature: texte(T, ligne, "Nature").toUpperCase(),
     porteur: texte(T, ligne, "Porteur"),
-    service: texte(T, ligne, "Service"),
+    service: serviceReel(texte(T, ligne, "Service")),
     groupement: texte(T, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
     echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
@@ -506,7 +513,7 @@ function lireTache(ligne){
     cleAction: texte(T, ligne, "ID_Action_MEO"),
     libelle: texte(T, ligne, "ID_Tâche", "ID_Tache"),
     porteur: texte(T, ligne, "Porteur"),
-    service: texte(T, ligne, "Service"),
+    service: serviceReel(texte(T, ligne, "Service")),
     groupement: texte(T, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev")),
     echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev")),
@@ -535,7 +542,7 @@ function lireAnnexe(tableId, ligne, facteur, clesLibelle){
     categorie: texte(tableId, ligne, "Reccomandation_Rappel", "Recommandation_Rappel",
       "Action_DUERP", "Catégorie", "Categorie", "Type", "Nature"),
     porteur: texte(tableId, ligne, "Porteur"),
-    service: texte(tableId, ligne, "Service"),
+    service: serviceReel(texte(tableId, ligne, "Service")),
     groupement: texte(tableId, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
     echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
