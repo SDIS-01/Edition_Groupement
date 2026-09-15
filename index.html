@@ -7,9 +7,12 @@
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 <style>
   :root{
-    --bleu:#002395;
-    --bleu-clair:#e8ecf7;
-    --trait:#d6dae6;
+    /* Palette taupe, accordée à l'export Excel */
+    --bleu:#6E6254;
+    --bleu-clair:#F6F2EC;
+    --bleu-fonce:#5A5044;
+    --liseret:#8C8070;
+    --trait:#E2DCD2;
     --texte:#1c1c1c;
     --attenue:#7a7f8c;
   }
@@ -18,7 +21,7 @@
   body{font-family:Tahoma,Geneva,Verdana,sans-serif;font-size:13px;color:var(--texte);background:#fff;}
   h1,h2,h3{color:var(--bleu);margin:0;font-weight:bold;}
 
-  .barre{position:sticky;top:0;z-index:20;background:#fff;border-bottom:2px solid var(--bleu);padding:10px 14px 8px;}
+  .barre{position:sticky;top:0;z-index:20;background:#fff;border-bottom:2px solid var(--liseret);padding:10px 14px 8px;}
   .barre-haut{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
   .barre-haut h1{font-size:16px;}
   .grandir{flex:1;}
@@ -42,12 +45,12 @@
   button:hover{opacity:.88;}
 
   .contenu{padding:14px;}
-  .entete-grp{border-left:4px solid var(--bleu);padding:2px 0 2px 10px;margin-bottom:10px;}
+  .entete-grp{border-left:4px solid var(--liseret);padding:2px 0 2px 10px;margin-bottom:10px;}
   .entete-grp h2{font-size:17px;}
   .meta{font-size:12px;color:var(--attenue);margin-top:3px;}
   .meta b{color:var(--texte);font-weight:normal;}
   .compteurs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-  .compteur{border:1px solid var(--trait);border-radius:3px;padding:6px 12px;min-width:104px;background:#fbfcfe;}
+  .compteur{border:1px solid var(--trait);border-radius:3px;padding:6px 12px;min-width:104px;background:#FCFAF7;}
   .compteur .n{font-size:20px;color:var(--bleu);font-weight:bold;line-height:1.1;}
   .compteur .l{font-size:11px;color:var(--attenue);}
   .repartition{display:flex;height:14px;border-radius:2px;overflow:hidden;margin-bottom:4px;border:1px solid var(--trait);}
@@ -57,11 +60,11 @@
   .puce{width:9px;height:9px;border-radius:2px;display:inline-block;}
 
   .bloc-projet{border:1px solid var(--trait);border-radius:3px;margin-bottom:9px;overflow:hidden;}
-  .ligne{display:flex;align-items:baseline;gap:8px;padding:6px 9px;border-top:1px solid #eef0f6;}
+  .ligne{display:flex;align-items:baseline;gap:8px;padding:6px 9px;border-top:1px solid #F0EBE3;}
   .bloc-projet > .ligne:first-child{border-top:none;}
   .ligne.projet{background:var(--bleu-clair);}
-  .ligne.projet .titre{font-weight:bold;color:var(--bleu);font-size:13px;}
-  .ligne.action{padding-left:26px;background:#fafbfe;}
+  .ligne.projet .titre{font-weight:bold;color:var(--bleu-fonce);font-size:13px;}
+  .ligne.action{padding-left:26px;background:#FBF9F6;}
   .ligne.action .titre{font-size:12px;}
   .ligne.rubrique .titre{font-weight:bold;}
   .ligne.tache{padding-left:46px;}
@@ -99,7 +102,7 @@
     .barre,.reglages,.repli{display:none !important;}
     .contenu{padding:0;}
     body{font-size:10.5pt;}
-    .entete-impression{display:block;border-bottom:2px solid var(--bleu);padding-bottom:5px;margin-bottom:10px;}
+    .entete-impression{display:block;border-bottom:2px solid var(--liseret);padding-bottom:5px;margin-bottom:10px;}
     .entete-impression .t{color:var(--bleu);font-weight:bold;font-size:13pt;}
     .entete-impression .d{font-size:9pt;color:var(--attenue);}
     .bloc-projet,.ligne{break-inside:avoid;page-break-inside:avoid;}
