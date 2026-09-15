@@ -857,6 +857,12 @@ function construireEtat(code){
 
   projetsFinaux.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr"));
   projetsFinaux.forEach(p => p.actions.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr")));
+  /* Tâches triées par libellé, numérotation comprise (2. avant 10.). */
+  const triTaches = (x, y) => (x.libelle || "").localeCompare(y.libelle || "", "fr", { numeric: true });
+  projetsFinaux.forEach(p => {
+    p.taches.sort(triTaches);
+    p.actions.forEach(a => a.taches.sort(triTaches));
+  });
 
   /* MEC 2023, PAPRIPACT et lignes sans projet ne sont rattachés à aucun projet :
      ils disparaissent quand un projet est sélectionné. */
