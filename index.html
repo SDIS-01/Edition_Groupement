@@ -31,6 +31,8 @@
   }
   input[type=search]{min-width:190px;}
   select{min-width:150px;}
+  select:disabled{opacity:.45;cursor:not-allowed;}
+  #selProjet{max-width:280px;}
   input:focus,select:focus,button:focus{outline:2px solid var(--bleu);outline-offset:1px;}
   .cases{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .cases label{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;}
@@ -133,6 +135,17 @@
       <select id="selCollaborateur"><option value="">Tous</option></select>
     </div>
     <div class="champ">
+      <span>Vue collaborateur</span>
+      <select id="selModeCollab">
+        <option value="lignes" selected>Seulement les lignes dont il est porteur</option>
+        <option value="complet">Ses lignes + ses projets en entier</option>
+      </select>
+    </div>
+    <div class="champ">
+      <span>Projet</span>
+      <select id="selProjet"><option value="">Tous</option></select>
+    </div>
+    <div class="champ">
       <span>Périmètre</span>
       <select id="selPerimetre">
         <option value="portage">Projets portés par le groupement</option>
@@ -193,6 +206,9 @@ const REGLAGES_DEFAUT = {
   mode: "listes"
 };
 let reglages = Object.assign({}, REGLAGES_DEFAUT);
+
+/* Valeur de la liste Groupement signifiant « aucun groupement imposé ». */
+const TOUS = "*";
 
 const CLES_MEC = ["ID_MEC_2023", "MEC_2023", "Recommandation", "Libellé", "Libelle"];
 const CLES_PAP = ["Action_PAPRIPACT", "ID_PAPRIPACT", "Action", "Libellé", "Libelle"];
@@ -624,21 +640,38 @@ function rattachements(ligneGroupement, code, libelleGroupement){
 /* =========================================================
    Construction de l'état
    ========================================================= */
+/* Sans groupement imposé : toutes les lignes de toutes les tables, les filtres font le tri. */
+function rattachementsTous(){
+  const TA = reglages.tAction;
+  const projets = new Set(), actions = new Set();
+  ctxDe(TA).lignes.forEach(l => {
+    if (texte(TA, l, "Nature").toUpperCase() === "MEO") actions.add(l.id);
+    else projets.add(l.id);
+  });
+  const ids = t => new Set(ctxDe(t).lignes.map(l => l.id));
+  return { projets, actions, taches: ids(reglages.tTache), mec: ids(reglages.tMec),
+    papripact: ids(reglages.tPapripact), parListes: true };
+}
+
 function construireEtat(code){
   const TG = reglages.tGroupement, ctxG = ctxDe(TG);
-  const ligneG = ctxG.lignes.find(l => texte(TG, l, "Groupement") === code);
-  if (!ligneG) return null;
+  const tous = code === TOUS;
+  const ligneG = tous ? null : ctxG.lignes.find(l => texte(TG, l, "Groupement") === code);
+  if (!tous && !ligneG) return null;
 
-  const libelle = texte(TG, ligneG, "Libellé_Groupement", "Libelle_Groupement") || code;
-  const rat = rattachements(ligneG, code, libelle);
+  const libelle = tous ? "Tous les groupements"
+    : (texte(TG, ligneG, "Libellé_Groupement", "Libelle_Groupement") || code);
+  const rat = tous ? rattachementsTous() : rattachements(ligneG, code, libelle);
   const f = lireFiltres();
 
-  const ctxA = ctxDe(reglages.tAction), ctxT = ctxDe(reglages.tTache);
+  const TA = reglages.tAction, TT = reglages.tTache;
+  const ctxA = ctxDe(TA), ctxT = ctxDe(TT);
 
   /* Périmètre « portage » : on part des seuls projets portés par le groupement,
-     et on descend sur la totalité de leurs actions et de leurs tâches. */
+     et on descend sur la totalité de leurs actions et de leurs tâches.
+     Sans objet quand aucun groupement n'est imposé. */
   let idsProjets = rat.projets, idsActions = rat.actions, idsTaches = rat.taches;
-  if (f.perimetre === "portage"){
+  if (!tous && f.perimetre === "portage"){
     const clesPortees = new Set();
     idsProjets.forEach(id => {
       const l = ctxA.parId.get(id);
@@ -656,6 +689,31 @@ function construireEtat(code){
     ctxT.lignes.forEach(l => {
       if (clesPortees.has(texte(reglages.tTache, l, "ID_Projet_Action_AV"))) idsTaches.add(l.id);
     });
+  }
+
+  /* Vue « projets en entier » : les projets portés par le collaborateur sont repris
+     avec toutes leurs actions et toutes leurs tâches, quel qu'en soit le porteur. */
+  const projetsDuCollab = new Set();
+  if (f.collaborateur && f.modeCollab === "complet"){
+    ctxA.lignes.forEach(l => {
+      if (texte(TA, l, "Nature").toUpperCase() === "MEO") return;
+      if (texte(TA, l, "Porteur") !== f.collaborateur) return;
+      const cle = texte(TA, l, "ID_Projet_Action_AV");
+      if (cle) projetsDuCollab.add(cle);
+    });
+    if (projetsDuCollab.size){
+      idsProjets = new Set(idsProjets);
+      idsActions = new Set(idsActions);
+      idsTaches = new Set(idsTaches);
+      ctxA.lignes.forEach(l => {
+        if (!projetsDuCollab.has(texte(TA, l, "ID_Projet_Action_AV"))) return;
+        if (texte(TA, l, "Nature").toUpperCase() === "MEO") idsActions.add(l.id);
+        else idsProjets.add(l.id);
+      });
+      ctxT.lignes.forEach(l => {
+        if (projetsDuCollab.has(texte(TT, l, "ID_Projet_Action_AV"))) idsTaches.add(l.id);
+      });
+    }
   }
 
   /* Index des projets et des actions par libellé. */
@@ -732,23 +790,31 @@ function construireEtat(code){
     return true;
   };
   const garderTexte = s => !f.texte || norm(s).includes(f.texte);
-  const garderCollab = o => !f.collaborateur || txt(o.porteur) === f.collaborateur;
+  /* Un élément est gardé si le collaborateur en est porteur, ou, en vue complète,
+     s'il appartient à l'un de ses projets. */
+  const garderCollab = (o, cleProjet) => !f.collaborateur
+    || txt(o.porteur) === f.collaborateur
+    || (!!cleProjet && projetsDuCollab.has(cleProjet));
+
+  /* Liste des projets proposés dans le filtre : ceux du périmètre, avant filtrage. */
+  const projetsDisponibles = Array.from(arbre.keys());
 
   const projetsFinaux = [];
   arbre.forEach(np => {
+    if (f.projet && np.cle !== f.projet) return;
     const actionsFinales = [];
     np.actions.forEach(na => {
       const taches = na.taches.filter(t =>
-        garderStatut(t) && garderCollab(t) && (garderTexte(t.libelle) || garderTexte(na.cle)));
+        garderStatut(t) && garderCollab(t, np.cle) && (garderTexte(t.libelle) || garderTexte(na.cle)));
       const actionVisible = na.direct
-        && (!na.a || (garderStatut(na.a) && garderCollab(na.a)))
+        && (!na.a || (garderStatut(na.a) && garderCollab(na.a, np.cle)))
         && garderTexte(na.cle);
       if (actionVisible || taches.length) actionsFinales.push({ noeud: na, taches, direct: actionVisible });
     });
     const tachesProjet = np.taches.filter(t =>
-      garderStatut(t) && garderCollab(t) && (garderTexte(t.libelle) || garderTexte(np.cle)));
+      garderStatut(t) && garderCollab(t, np.cle) && (garderTexte(t.libelle) || garderTexte(np.cle)));
     const projetVisible = np.direct
-      && (!np.a || (garderStatut(np.a) && garderCollab(np.a)))
+      && (!np.a || (garderStatut(np.a) && garderCollab(np.a, np.cle)))
       && garderTexte(np.cle);
     if (projetVisible || actionsFinales.length || tachesProjet.length){
       projetsFinaux.push({ noeud: np, direct: projetVisible, actions: actionsFinales, taches: tachesProjet });
@@ -758,10 +824,13 @@ function construireEtat(code){
   projetsFinaux.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr"));
   projetsFinaux.forEach(p => p.actions.sort((x, y) => x.noeud.cle.localeCompare(y.noeud.cle, "fr")));
 
-  const mecFinal = mecBrut.filter(o =>
-    garderStatut(o) && garderCollab(o) && garderTexte(o.libelle));
-  const papFinal = papBrut.filter(o =>
-    garderStatut(o) && garderCollab(o) && garderTexte(o.libelle));
+  /* MEC 2023, PAPRIPACT et lignes sans projet ne sont rattachés à aucun projet :
+     ils disparaissent quand un projet est sélectionné. */
+  const garderAnnexe = o => !f.projet
+    && garderStatut(o) && garderCollab(o, "") && garderTexte(o.libelle);
+  const mecFinal = mecBrut.filter(garderAnnexe);
+  const papFinal = papBrut.filter(garderAnnexe);
+  const orphelinsFinaux = orphelins.filter(x => garderAnnexe(Object.assign({}, x.o, { libelle: x.libelle })));
   mecFinal.sort((x, y) =>
     (x.categorie || "").localeCompare(y.categorie || "", "fr") || x.libelle.localeCompare(y.libelle, "fr"));
   papFinal.sort((x, y) => x.libelle.localeCompare(y.libelle, "fr"));
@@ -781,17 +850,32 @@ function construireEtat(code){
     });
     p.taches.forEach(t => { compte.taches++; compter(t); });
   });
+  orphelinsFinaux.forEach(x => {
+    if (x.type === "action") compte.actions++; else compte.taches++;
+    compter(x.o);
+  });
   mecFinal.forEach(o => { compte.mec++; compter(o); });
   papFinal.forEach(o => { compte.papripact++; compter(o); });
 
+  /* Titre et nom court selon la sélection. */
+  const titre = !tous ? libelle : (f.collaborateur || f.projet || libelle);
+  const morceaux = [];
+  if (!tous) morceaux.push(code);
+  if (f.collaborateur) morceaux.push(f.collaborateur);
+  if (f.projet) morceaux.push(f.projet);
+  if (!morceaux.length) morceaux.push("tous");
+  const nomCourt = morceaux.join(" ");
+
   return {
-    code, libelle,
-    chef: texte(TG, ligneG, "Chef_Groupement"),
-    sousDirection: texte(TG, ligneG, "Sous-direction", "Sous_direction"),
-    sponsor: texte(TG, ligneG, "Sponsor_CODIR"),
+    code, libelle, tous, titre, nomCourt,
+    filtres: f,
+    projetsDisponibles,
+    chef: tous ? "" : texte(TG, ligneG, "Chef_Groupement"),
+    sousDirection: tous ? "" : texte(TG, ligneG, "Sous-direction", "Sous_direction"),
+    sponsor: tous ? "" : texte(TG, ligneG, "Sponsor_CODIR"),
     parListes: rat.parListes,
     projets: projetsFinaux,
-    orphelins,
+    orphelins: orphelinsFinaux,
     mec: mecFinal,
     papripact: papFinal,
     compte
@@ -802,6 +886,8 @@ function lireFiltres(){
   return {
     texte: norm(document.getElementById("recherche").value),
     collaborateur: document.getElementById("selCollaborateur").value,
+    modeCollab: document.getElementById("selModeCollab").value,
+    projet: document.getElementById("selProjet").value,
     perimetre: document.getElementById("selPerimetre").value,
     termine: document.getElementById("chkTermine").checked,
     interrompu: document.getElementById("chkInterrompu").checked
@@ -861,10 +947,22 @@ function etatHtml(etat, pourImpression){
   const ordre = ["À engager", "En cours", "Terminé", "Interrompu"];
   const couleurs = { "À engager": "#C0504D", "En cours": "#F79646", "Terminé": "#9BBB59", "Interrompu": "#4A4A4A" };
 
+  const ef = etat.filtres || f;
   const h = ['<div class="entete-grp">'];
-  h.push('<h2>' + echapper(etat.libelle)
-    + ' <span style="font-weight:normal;font-size:13px">(' + echapper(etat.code) + ")</span></h2>");
+  h.push('<h2>' + echapper(etat.titre)
+    + (etat.tous ? "" : ' <span style="font-weight:normal;font-size:13px">(' + echapper(etat.code) + ")</span>")
+    + "</h2>");
   const meta = [];
+  if (etat.tous && (ef.collaborateur || ef.projet)) meta.push("<b>Tous les groupements</b>");
+  if (ef.collaborateur){
+    const infos = infosCollaborateur(ef.collaborateur);
+    if (etat.titre !== ef.collaborateur) meta.push("Collaborateur : <b>" + echapper(ef.collaborateur) + "</b>");
+    if (infos.fonction) meta.push("Fonction : <b>" + echapper(infos.fonction) + "</b>");
+    if (etat.tous && infos.groupement) meta.push("Groupement : <b>" + echapper(infos.groupement) + "</b>");
+    meta.push("Vue : <b>" + (ef.modeCollab === "complet"
+      ? "ses lignes et ses projets en entier" : "lignes dont il est porteur") + "</b>");
+  }
+  if (ef.projet && etat.titre !== ef.projet) meta.push("Projet : <b>" + echapper(ef.projet) + "</b>");
   if (etat.chef) meta.push("Chef de groupement : <b>" + echapper(etat.chef) + "</b>");
   if (etat.sousDirection) meta.push("Sous-direction : <b>" + echapper(etat.sousDirection) + "</b>");
   if (etat.sponsor) meta.push("Sponsor CODIR : <b>" + echapper(etat.sponsor) + "</b>");
@@ -906,7 +1004,7 @@ function etatHtml(etat, pourImpression){
   }
 
   if (!etat.projets.length && !etat.mec.length && !etat.papripact.length && !etat.orphelins.length){
-    h.push('<div class="vide-etat">Aucune ligne rattachée à ce groupement avec les filtres actuels.</div>');
+    h.push('<div class="vide-etat">Aucune ligne ne correspond à la sélection.</div>');
     return h.join("");
   }
 
@@ -961,14 +1059,44 @@ function afficher(){
   const zone = document.getElementById("contenu");
   if (!D.pretes){ zone.innerHTML = '<div class="vide-etat">Chargement des données…</div>'; return; }
   if (!groupementCourant){ zone.innerHTML = '<div class="vide-etat">Choisissez un groupement.</div>'; return; }
-  const etat = construireEtat(groupementCourant);
+  document.getElementById("selPerimetre").disabled = groupementCourant === TOUS;
+  let etat = construireEtat(groupementCourant);
   if (!etat){ zone.innerHTML = '<div class="vide-etat">Groupement introuvable.</div>'; return; }
+  /* Mise à jour des listes ; si une sélection n'existe plus dans le nouveau périmètre,
+     elle revient à « Tous » et l'état est recalculé. */
+  const avant = selectionFiltres();
+  majCollaborateurs(etat);
+  majProjets(etat);
+  document.getElementById("selModeCollab").disabled = !document.getElementById("selCollaborateur").value;
+  if (selectionFiltres() !== avant) etat = construireEtat(groupementCourant);
   zone.innerHTML =
-    '<div class="entete-impression"><div class="t">État par groupement — ' + echapper(etat.libelle)
+    '<div class="entete-impression"><div class="t">État — ' + echapper(etat.titre)
     + '</div><div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
     + '<div class="section-impression">' + etatHtml(etat, false) + "</div>";
   brancherReplis();
-  majCollaborateurs(etat);
+}
+
+function selectionFiltres(){
+  return document.getElementById("selCollaborateur").value + "|" + document.getElementById("selProjet").value;
+}
+
+function infosCollaborateur(nom){
+  const TC = reglages.tCollaborateur;
+  const l = ctxDe(TC).lignes.find(x => texte(TC, x, "Nom_Prénom", "Nom_Prenom", "Nom") === nom);
+  return l ? { fonction: texte(TC, l, "Fonction"), groupement: texte(TC, l, "Groupement") }
+           : { fonction: "", groupement: "" };
+}
+
+function remplirListe(sel, valeurs){
+  const actuel = sel.value;
+  sel.innerHTML = '<option value="">Tous</option>'
+    + valeurs.map(n => '<option value="' + echapper(n) + '">' + echapper(n) + "</option>").join("");
+  sel.value = valeurs.includes(actuel) ? actuel : "";
+}
+
+function majProjets(etat){
+  const liste = etat.projetsDisponibles.slice().sort((a, b) => a.localeCompare(b, "fr"));
+  remplirListe(document.getElementById("selProjet"), liste);
 }
 
 function brancherReplis(){
@@ -983,20 +1111,16 @@ function brancherReplis(){
 
 function majCollaborateurs(etat){
   const sel = document.getElementById("selCollaborateur");
-  const actuel = sel.value;
   const TC = reglages.tCollaborateur;
   const noms = new Set();
   ctxDe(TC).lignes.forEach(l => {
     const g = texte(TC, l, "Groupement");
-    if (g === etat.code || g === etat.libelle){
+    if (etat.tous || g === etat.code || g === etat.libelle){
       const n = texte(TC, l, "Nom_Prénom", "Nom_Prenom", "Nom");
       if (n) noms.add(n);
     }
   });
-  const liste = Array.from(noms).sort((a, b) => a.localeCompare(b, "fr"));
-  sel.innerHTML = '<option value="">Tous</option>'
-    + liste.map(n => '<option value="' + echapper(n) + '">' + echapper(n) + "</option>").join("");
-  if (liste.includes(actuel)) sel.value = actuel;
+  remplirListe(sel, Array.from(noms).sort((a, b) => a.localeCompare(b, "fr")));
 }
 
 /* =========================================================
@@ -1159,7 +1283,7 @@ function ecrireLigne(ws, l, colonnes, prefixe, repeterParents){
 }
 
 function nomFeuille(etat, prises){
-  let base = (etat.code || "Groupement").replace(/[\\/*?:\[\]]/g, " ").slice(0, 28).trim();
+  let base = (etat.nomCourt || etat.code || "Groupement").replace(/[\\/*?:\[\]]/g, " ").slice(0, 28).trim();
   let nom = base, n = 2;
   while (prises.has(nom)){ nom = base + " " + n; n++; }
   prises.add(nom);
@@ -1231,9 +1355,11 @@ async function exporterExcel(tousLesGroupements){
       telecharger(await wb.xlsx.writeBuffer(), "etat_par_groupement_tous.xlsx");
     } else {
       const etat = construireEtat(groupementCourant);
-      if (!etat) throw new Error("groupement introuvable");
+      if (!etat) throw new Error("sélection introuvable");
       ajouterFeuilleGroupement(wb, etat, prises);
-      telecharger(await wb.xlsx.writeBuffer(), "etat_" + etat.code + ".xlsx");
+      const slug = etat.nomCourt.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80);
+      telecharger(await wb.xlsx.writeBuffer(), "etat_" + (slug || "selection") + ".xlsx");
     }
   } catch (err){
     const zone = document.getElementById("contenu");
@@ -1259,10 +1385,13 @@ function remplirGroupements(){
     libelle: texte(TG, l, "Libellé_Groupement", "Libelle_Groupement")
   })).filter(x => x.code);
   items.sort((a, b) => (a.libelle || a.code).localeCompare(b.libelle || b.code, "fr"));
-  sel.innerHTML = items.map(x =>
+  sel.innerHTML = '<option value="' + TOUS + '">— Tous les groupements —</option>'
+    + items.map(x =>
     '<option value="' + echapper(x.code) + '">' + echapper(x.libelle || x.code)
     + " (" + echapper(x.code) + ")</option>").join("");
-  if (items.length && !items.some(x => x.code === groupementCourant)) groupementCourant = items[0].code;
+  if (groupementCourant !== TOUS && !items.some(x => x.code === groupementCourant)){
+    groupementCourant = items.length ? items[0].code : TOUS;
+  }
   if (groupementCourant) sel.value = groupementCourant;
 }
 
@@ -1278,7 +1407,7 @@ function brancherInterface(){
     replies = new Set();
     afficher();
   });
-  ["recherche", "selCollaborateur", "selPerimetre",
+  ["recherche", "selCollaborateur", "selModeCollab", "selProjet", "selPerimetre",
    "chkTermine", "chkInterrompu"].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener(el.type === "search" ? "input" : "change", afficher);
