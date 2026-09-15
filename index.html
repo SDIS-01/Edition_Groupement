@@ -138,6 +138,10 @@
       <select id="selCollaborateur"><option value="">Tous</option></select>
     </div>
     <div class="champ">
+      <span>Service</span>
+      <select id="selService"><option value="">Tous</option></select>
+    </div>
+    <div class="champ">
       <span>Vue collaborateur</span>
       <select id="selModeCollab">
         <option value="lignes" selected>Seulement les lignes dont il est porteur</option>
@@ -479,6 +483,7 @@ function lireAction(ligne){
     cleAction: texte(T, ligne, "ID_Action_MEO"),
     nature: texte(T, ligne, "Nature").toUpperCase(),
     porteur: texte(T, ligne, "Porteur"),
+    service: texte(T, ligne, "Service"),
     groupement: texte(T, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
     echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
@@ -501,6 +506,7 @@ function lireTache(ligne){
     cleAction: texte(T, ligne, "ID_Action_MEO"),
     libelle: texte(T, ligne, "ID_Tâche", "ID_Tache"),
     porteur: texte(T, ligne, "Porteur"),
+    service: texte(T, ligne, "Service"),
     groupement: texte(T, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev")),
     echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev")),
@@ -529,6 +535,7 @@ function lireAnnexe(tableId, ligne, facteur, clesLibelle){
     categorie: texte(tableId, ligne, "Reccomandation_Rappel", "Recommandation_Rappel",
       "Action_DUERP", "Catégorie", "Categorie", "Type", "Nature"),
     porteur: texte(tableId, ligne, "Porteur"),
+    service: texte(tableId, ligne, "Service"),
     groupement: texte(tableId, ligne, "Groupement"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
     echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
@@ -799,6 +806,23 @@ function construireEtat(code){
     || txt(o.porteur) === f.collaborateur
     || (!!cleProjet && projetsDuCollab.has(cleProjet));
 
+  /* Service : comparé à la colonne Service de la ligne elle-même. */
+  const garderService = o => !f.service || txt(o.service) === f.service;
+  const garderPersonne = (o, cleProjet) => garderCollab(o, cleProjet) && garderService(o);
+
+  /* Services proposés dans le filtre : ceux des lignes du périmètre, avant filtrage. */
+  const services = new Set();
+  const noterService = o => { if (o && txt(o.service)) services.add(txt(o.service)); };
+  arbre.forEach(np => {
+    if (np.direct) noterService(np.a);
+    np.taches.forEach(noterService);
+    np.actions.forEach(na => { if (na.direct) noterService(na.a); na.taches.forEach(noterService); });
+  });
+  orphelins.forEach(x => noterService(x.o));
+  mecBrut.forEach(noterService);
+  papBrut.forEach(noterService);
+  const servicesDisponibles = Array.from(services);
+
   /* Liste des projets proposés dans le filtre : ceux du périmètre, avant filtrage. */
   const projetsDisponibles = Array.from(arbre.keys());
 
@@ -808,16 +832,16 @@ function construireEtat(code){
     const actionsFinales = [];
     np.actions.forEach(na => {
       const taches = na.taches.filter(t =>
-        garderStatut(t) && garderCollab(t, np.cle) && (garderTexte(t.libelle) || garderTexte(na.cle)));
+        garderStatut(t) && garderPersonne(t, np.cle) && (garderTexte(t.libelle) || garderTexte(na.cle)));
       const actionVisible = na.direct
-        && (!na.a || (garderStatut(na.a) && garderCollab(na.a, np.cle)))
+        && (!na.a || (garderStatut(na.a) && garderPersonne(na.a, np.cle)))
         && garderTexte(na.cle);
       if (actionVisible || taches.length) actionsFinales.push({ noeud: na, taches, direct: actionVisible });
     });
     const tachesProjet = np.taches.filter(t =>
-      garderStatut(t) && garderCollab(t, np.cle) && (garderTexte(t.libelle) || garderTexte(np.cle)));
+      garderStatut(t) && garderPersonne(t, np.cle) && (garderTexte(t.libelle) || garderTexte(np.cle)));
     const projetVisible = np.direct
-      && (!np.a || (garderStatut(np.a) && garderCollab(np.a, np.cle)))
+      && (!np.a || (garderStatut(np.a) && garderPersonne(np.a, np.cle)))
       && garderTexte(np.cle);
     if (projetVisible || actionsFinales.length || tachesProjet.length){
       projetsFinaux.push({ noeud: np, direct: projetVisible, actions: actionsFinales, taches: tachesProjet });
@@ -830,7 +854,7 @@ function construireEtat(code){
   /* MEC 2023, PAPRIPACT et lignes sans projet ne sont rattachés à aucun projet :
      ils disparaissent quand un projet est sélectionné. */
   const garderAnnexe = o => !f.projet
-    && garderStatut(o) && garderCollab(o, "") && garderTexte(o.libelle);
+    && garderStatut(o) && garderPersonne(o, "") && garderTexte(o.libelle);
   const mecFinal = mecBrut.filter(garderAnnexe);
   const papFinal = papBrut.filter(garderAnnexe);
   const orphelinsFinaux = orphelins.filter(x => garderAnnexe(Object.assign({}, x.o, { libelle: x.libelle })));
@@ -861,11 +885,12 @@ function construireEtat(code){
   papFinal.forEach(o => { compte.papripact++; compter(o); });
 
   /* Titre et nom court selon la sélection. */
-  const titre = !tous ? libelle : (f.collaborateur || f.projet || libelle);
+  const titre = !tous ? libelle : (f.collaborateur || f.projet || f.service || libelle);
   const morceaux = [];
   if (!tous) morceaux.push(code);
   if (f.collaborateur) morceaux.push(f.collaborateur);
   if (f.projet) morceaux.push(f.projet);
+  if (f.service) morceaux.push(f.service);
   if (!morceaux.length) morceaux.push("tous");
   const nomCourt = morceaux.join(" ");
 
@@ -873,6 +898,7 @@ function construireEtat(code){
     code, libelle, tous, titre, nomCourt,
     filtres: f,
     projetsDisponibles,
+    servicesDisponibles,
     chef: tous ? "" : texte(TG, ligneG, "Chef_Groupement"),
     sousDirection: tous ? "" : texte(TG, ligneG, "Sous-direction", "Sous_direction"),
     sponsor: tous ? "" : texte(TG, ligneG, "Sponsor_CODIR"),
@@ -891,6 +917,7 @@ function lireFiltres(){
     collaborateur: document.getElementById("selCollaborateur").value,
     modeCollab: document.getElementById("selModeCollab").value,
     projet: document.getElementById("selProjet").value,
+    service: document.getElementById("selService").value,
     perimetre: document.getElementById("selPerimetre").value,
     termine: document.getElementById("chkTermine").checked,
     interrompu: document.getElementById("chkInterrompu").checked
@@ -910,7 +937,7 @@ function pastille(o){
 
 function ligneHtml(classe, libelle, obj, visible, avecRepli, cleRepli){
   if (!visible) return "";
-  const o = obj || { pourcent: 0, interrompu: false, porteur: "", echeance: "" };
+  const o = obj || { pourcent: 0, interrompu: false, porteur: "", service: "", echeance: "" };
   const direct = !!obj;
   const h = ['<div class="ligne ' + classe + (direct ? "" : " contexte") + '">'];
   h.push(avecRepli
@@ -918,6 +945,7 @@ function ligneHtml(classe, libelle, obj, visible, avecRepli, cleRepli){
     : '<span class="repli vide">·</span>');
   h.push('<span class="titre">' + echapper(libelle) + "</span>");
   if (o.porteur) h.push('<span class="info">' + echapper(o.porteur) + "</span>");
+  if (o.service) h.push('<span class="info">' + echapper(o.service) + "</span>");
   if (o.echeance) h.push('<span class="info">éch. ' + echapper(o.echeance) + "</span>");
   if (obj) h.push(pastille(o));
   h.push("</div>");
@@ -956,7 +984,7 @@ function etatHtml(etat, pourImpression){
     + (etat.tous ? "" : ' <span style="font-weight:normal;font-size:13px">(' + echapper(etat.code) + ")</span>")
     + "</h2>");
   const meta = [];
-  if (etat.tous && (ef.collaborateur || ef.projet)) meta.push("<b>Tous les groupements</b>");
+  if (etat.tous && (ef.collaborateur || ef.projet || ef.service)) meta.push("<b>Tous les groupements</b>");
   if (ef.collaborateur){
     const infos = infosCollaborateur(ef.collaborateur);
     if (etat.titre !== ef.collaborateur) meta.push("Collaborateur : <b>" + echapper(ef.collaborateur) + "</b>");
@@ -965,6 +993,7 @@ function etatHtml(etat, pourImpression){
     meta.push("Vue : <b>" + (ef.modeCollab === "complet"
       ? "ses lignes et ses projets en entier" : "lignes dont il est porteur") + "</b>");
   }
+  if (ef.service && etat.titre !== ef.service) meta.push("Service : <b>" + echapper(ef.service) + "</b>");
   if (ef.projet && etat.titre !== ef.projet) meta.push("Projet : <b>" + echapper(ef.projet) + "</b>");
   if (etat.chef) meta.push("Chef de groupement : <b>" + echapper(etat.chef) + "</b>");
   if (etat.sousDirection) meta.push("Sous-direction : <b>" + echapper(etat.sousDirection) + "</b>");
@@ -1070,6 +1099,8 @@ function afficher(){
   const avant = selectionFiltres();
   majCollaborateurs(etat);
   majProjets(etat);
+  remplirListe(document.getElementById("selService"),
+    etat.servicesDisponibles.slice().sort((a, b) => a.localeCompare(b, "fr")));
   document.getElementById("selModeCollab").disabled = !document.getElementById("selCollaborateur").value;
   if (selectionFiltres() !== avant) etat = construireEtat(groupementCourant);
   zone.innerHTML =
@@ -1080,7 +1111,8 @@ function afficher(){
 }
 
 function selectionFiltres(){
-  return document.getElementById("selCollaborateur").value + "|" + document.getElementById("selProjet").value;
+  return document.getElementById("selCollaborateur").value + "|" + document.getElementById("selProjet").value
+    + "|" + document.getElementById("selService").value;
 }
 
 function infosCollaborateur(nom){
@@ -1215,6 +1247,7 @@ const COLONNES_ETAT = [
   { titre: "Action (MEO)", largeur: 35 },
   { titre: "Tâche", largeur: 32 },
   { titre: "Porteur", largeur: 24, centre: true },
+  { titre: "Service", largeur: 20, centre: true },
   { titre: "Échéance", largeur: 14, centre: true },
   { titre: "Avct", largeur: 11, centre: true },
   { titre: "Statut", largeur: 14, centre: true }
@@ -1246,14 +1279,14 @@ function ecrireLigne(ws, l, colonnes, prefixe, repeterParents){
   const contexte = !l.o;
   const r = ws.addRow(prefixe.concat([
     l.famille, l.categorie, cProjet, cAction, cTache,
-    l.o ? l.o.porteur : "", null, null, l.o ? l.o.statut : ""
+    l.o ? l.o.porteur : "", l.o ? l.o.service : "", null, null, l.o ? l.o.statut : ""
   ]));
 
   const decalage = prefixe.length;
   const iCategorie = decalage + 2;
   const libelles = [decalage + 3, decalage + 4, decalage + 5];
-  const iEcheance = decalage + 7;
-  const iAvct = decalage + 8;
+  const iEcheance = decalage + 8;
+  const iAvct = decalage + 9;
 
   colonnes.forEach((col, i) => {
     const cell = r.getCell(i + 1);
@@ -1410,7 +1443,7 @@ function brancherInterface(){
     replies = new Set();
     afficher();
   });
-  ["recherche", "selCollaborateur", "selModeCollab", "selProjet", "selPerimetre",
+  ["recherche", "selCollaborateur", "selService", "selModeCollab", "selProjet", "selPerimetre",
    "chkTermine", "chkInterrompu"].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener(el.type === "search" ? "input" : "change", afficher);
