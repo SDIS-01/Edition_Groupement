@@ -75,6 +75,7 @@
   .repli.vide{visibility:hidden;}
   .pastille{flex:0 0 auto;font-size:11px;padding:1px 7px;border-radius:9px;color:#fff;white-space:nowrap;}
   .pastille.claire{color:#3a3000;}
+  .pastille-p2a{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:bold;font-style:normal;padding:0 7px;border-radius:9px;background:#E2DCD2;color:#5A5044;border:1px solid #C9BFB1;white-space:nowrap;vertical-align:1px;}
   .info{flex:0 0 auto;font-size:11px;color:var(--attenue);white-space:nowrap;}
   .groupe-porteur{
     margin:15px 0 5px;font-size:12px;font-weight:bold;color:var(--bleu);
@@ -107,7 +108,7 @@
     .entete-impression .d{font-size:9pt;color:var(--attenue);}
     .bloc-projet,.ligne{break-inside:avoid;page-break-inside:avoid;}
     .groupe-porteur{break-after:avoid;page-break-after:avoid;}
-    .pastille,.ligne.projet,.repartition div,.puce{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .pastille,.pastille-p2a,.ligne.projet,.repartition div,.puce{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .section-impression + .section-impression{page-break-before:always;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
@@ -492,6 +493,7 @@ function lireAction(ligne){
     porteur: texte(T, ligne, "Porteur"),
     service: serviceReel(texte(T, ligne, "Service")),
     groupement: texte(T, ligne, "Groupement"),
+    millesime: texte(T, ligne, "Millesime_P2A"),
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
     echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
     statut: etatStatut(statutBrut, pourcent, interrompu),
@@ -948,7 +950,11 @@ function pastille(o){
     + echapper(c.libelle) + "</span>";
 }
 
-function ligneHtml(classe, libelle, obj, visible, avecRepli, cleRepli){
+function pastilleP2A(millesime){
+  return millesime ? '<span class="pastille-p2a" title="Millésime P2A">P2A ' + echapper(millesime) + "</span>" : "";
+}
+
+function ligneHtml(classe, libelle, obj, visible, avecRepli, cleRepli, millesime){
   if (!visible) return "";
   const o = obj || { pourcent: 0, interrompu: false, porteur: "", service: "", echeance: "" };
   const direct = !!obj;
@@ -956,7 +962,7 @@ function ligneHtml(classe, libelle, obj, visible, avecRepli, cleRepli){
   h.push(avecRepli
     ? '<span class="repli" data-cle="' + echapper(cleRepli) + '">' + (replies.has(cleRepli) ? "▸" : "▾") + "</span>"
     : '<span class="repli vide">·</span>');
-  h.push('<span class="titre">' + echapper(libelle) + "</span>");
+  h.push('<span class="titre">' + echapper(libelle) + pastilleP2A(millesime) + "</span>");
   if (o.porteur) h.push('<span class="info">' + echapper(o.porteur) + "</span>");
   if (o.service) h.push('<span class="info">' + echapper(o.service) + "</span>");
   if (o.echeance) h.push('<span class="info">éch. ' + echapper(o.echeance) + "</span>");
@@ -1070,10 +1076,12 @@ function etatHtml(etat, pourImpression){
     parPorteur.get(po).forEach(p => {
       const replie = replies.has(p.noeud.cle) && !pourImpression;
       h.push('<div class="bloc-projet">');
-      h.push(ligneHtml("projet", p.noeud.cle, p.direct ? p.noeud.a : null, true, true, p.noeud.cle));
+      h.push(ligneHtml("projet", p.noeud.cle, p.direct ? p.noeud.a : null, true, true, p.noeud.cle,
+        p.noeud.a ? p.noeud.a.millesime : ""));
       if (!replie){
         p.actions.forEach(a => {
-          h.push(ligneHtml("action", a.noeud.cle, a.direct ? a.noeud.a : null, true, false, ""));
+          h.push(ligneHtml("action", a.noeud.cle, a.direct ? a.noeud.a : null, true, false, "",
+            a.noeud.a ? a.noeud.a.millesime : ""));
           a.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
         });
         p.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
@@ -1086,7 +1094,8 @@ function etatHtml(etat, pourImpression){
     h.push('<div class="bloc-projet">');
     h.push('<div class="ligne projet"><span class="repli vide">·</span><span class="titre">Sans projet identifié</span></div>');
     etat.orphelins.forEach(x => {
-      h.push(ligneHtml(x.type === "action" ? "action" : "tache", x.libelle, x.o, true, false, ""));
+      h.push(ligneHtml(x.type === "action" ? "action" : "tache", x.libelle, x.o, true, false, "",
+        x.type === "action" && x.o ? x.o.millesime : ""));
     });
     h.push("</div>");
   }
@@ -1221,10 +1230,12 @@ function aplatir(etat){
   etat.projets.forEach(p => {
     const grp = p.noeud.a ? p.noeud.a.groupement : "";
     lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "projet",
-      projet: p.noeud.cle, action: "", tache: "", o: p.direct ? p.noeud.a : null });
+      projet: p.noeud.cle, action: "", tache: "", o: p.direct ? p.noeud.a : null,
+      millesime: p.noeud.a ? p.noeud.a.millesime : "" });
     p.actions.forEach(a => {
       lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "action",
-        projet: p.noeud.cle, action: a.noeud.cle, tache: "", o: a.direct ? a.noeud.a : null });
+        projet: p.noeud.cle, action: a.noeud.cle, tache: "", o: a.direct ? a.noeud.a : null,
+        millesime: a.noeud.a ? a.noeud.a.millesime : "" });
       a.taches.forEach(t => lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "tache",
         projet: p.noeud.cle, action: a.noeud.cle, tache: t.libelle, o: t }));
     });
@@ -1235,7 +1246,8 @@ function aplatir(etat){
     famille: "Projet_Action", categorie: x.o.groupement || "",
     niveau: x.type === "action" ? "action" : "tache",
     projet: "", action: x.type === "action" ? x.libelle : "",
-    tache: x.type === "action" ? "" : x.libelle, o: x.o }));
+    tache: x.type === "action" ? "" : x.libelle, o: x.o,
+    millesime: x.type === "action" && x.o ? x.o.millesime : "" }));
   etat.mec.forEach(o => lignes.push({ famille: "MEC 2023", categorie: o.categorie || "",
     niveau: "annexe", projet: o.libelle, action: "", tache: "", o }));
   etat.papripact.forEach(o => lignes.push({ famille: "PAPRIPACT", categorie: "Action_DUERP",
@@ -1259,6 +1271,7 @@ const COLONNES_ETAT = [
   { titre: "Projet_Action", largeur: 42 },
   { titre: "Action (MEO)", largeur: 35 },
   { titre: "Tâche", largeur: 32 },
+  { titre: "Millésime P2A", largeur: 13, centre: true },
   { titre: "Porteur", largeur: 24, centre: true },
   { titre: "Service", largeur: 20, centre: true },
   { titre: "Échéance", largeur: 14, centre: true },
@@ -1291,15 +1304,15 @@ function ecrireLigne(ws, l, colonnes, prefixe, repeterParents){
   const [cProjet, cAction, cTache] = colonnesLibelle(l, repeterParents);
   const contexte = !l.o;
   const r = ws.addRow(prefixe.concat([
-    l.famille, l.categorie, cProjet, cAction, cTache,
+    l.famille, l.categorie, cProjet, cAction, cTache, l.millesime || "",
     l.o ? l.o.porteur : "", l.o ? l.o.service : "", null, null, l.o ? l.o.statut : ""
   ]));
 
   const decalage = prefixe.length;
   const iCategorie = decalage + 2;
   const libelles = [decalage + 3, decalage + 4, decalage + 5];
-  const iEcheance = decalage + 8;
-  const iAvct = decalage + 9;
+  const iEcheance = decalage + 9;
+  const iAvct = decalage + 10;
 
   colonnes.forEach((col, i) => {
     const cell = r.getCell(i + 1);
