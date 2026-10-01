@@ -1690,10 +1690,18 @@ function construireEtatSponsor(sponsor){
     if (!parGroupement.has(cle)) parGroupement.set(cle, { libelle: cle, code: p.grpCode, projets: [] });
     parGroupement.get(cle).projets.push(p);
   });
+  /* Les sous-directions opérationnelle puis santé passent en tête,
+     les autres groupements suivent par ordre alphabétique, « Sans groupement » en dernier. */
+  const TETE_SPONSOR = ["sousdirectionoperationnelle", "sousdirectionsante"];
+  const rangTete = lib => {
+    const n = norm(lib);
+    const i = TETE_SPONSOR.findIndex(t => n.includes(t));
+    return i < 0 ? TETE_SPONSOR.length : i;
+  };
   const groupes = Array.from(parGroupement.values()).sort((x, y) => {
     if (x.libelle === SANS_GROUPEMENT) return 1;
     if (y.libelle === SANS_GROUPEMENT) return -1;
-    return x.libelle.localeCompare(y.libelle, "fr");
+    return rangTete(x.libelle) - rangTete(y.libelle) || x.libelle.localeCompare(y.libelle, "fr");
   });
   groupes.forEach(g => g.projets.sort((x, y) => x.a.cleProjet.localeCompare(y.a.cleProjet, "fr")));
 
