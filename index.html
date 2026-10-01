@@ -76,6 +76,9 @@
   .pastille{flex:0 0 auto;font-size:11px;padding:1px 7px;border-radius:9px;color:#fff;white-space:nowrap;}
   .pastille.claire{color:#3a3000;}
   .pastille-origine{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:bold;font-style:normal;padding:0 7px;border-radius:9px;background:#E3E8F6;color:#002395;border:1px solid #B7C2E6;white-space:nowrap;vertical-align:1px;}
+  .pastille-origine.casdis{background:#E3E8F6;color:#002395;border-color:#B7C2E6;}
+  .pastille-origine.ajout{background:#FDEBD8;color:#A2551A;border-color:#F0C9A2;}
+  .pastille-origine.autre{background:#EEEEEC;color:#55554F;border-color:#CFCFCA;}
   .pastille-p2a{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:bold;font-style:normal;padding:0 7px;border-radius:9px;background:#E2DCD2;color:#5A5044;border:1px solid #C9BFB1;white-space:nowrap;vertical-align:1px;}
   .info{flex:0 0 auto;font-size:11px;color:var(--attenue);white-space:nowrap;}
   .groupe-porteur{
@@ -155,6 +158,10 @@
     <div class="champ">
       <span>Recherche</span>
       <input type="search" id="recherche" placeholder="Projet, action, tâche…">
+    </div>
+    <div class="champ">
+      <span>Origine</span>
+      <select id="selOrigine"><option value="">Toutes</option></select>
     </div>
     <div class="champ seul-sp">
       <span>Groupement</span>
@@ -899,6 +906,7 @@ function construireEtat(code){
   const projetsFinaux = [];
   arbre.forEach(np => {
     if (f.projet && np.cle !== f.projet) return;
+    if (!garderOrigine(np.a ? np.a.origine : origineProjet(np.cle), f.origine)) return;
     const actionsFinales = [];
     np.actions.forEach(na => {
       const taches = na.taches.filter(t =>
@@ -933,7 +941,9 @@ function construireEtat(code){
     && garderStatut(o) && garderPersonne(o, "") && garderTexte(o.libelle);
   const mecFinal = mecBrut.filter(garderAnnexe);
   const papFinal = papBrut.filter(garderAnnexe);
-  const orphelinsFinaux = orphelins.filter(x => garderAnnexe(Object.assign({}, x.o, { libelle: x.libelle })));
+  /* Lignes sans projet : filtrées sur leur propre origine (une tâche n'en a pas). */
+  const orphelinsFinaux = orphelins.filter(x => garderAnnexe(Object.assign({}, x.o, { libelle: x.libelle }))
+    && garderOrigine(x.type === "action" && x.o ? x.o.origine : "", f.origine));
   mecFinal.sort((x, y) =>
     (x.categorie || "").localeCompare(y.categorie || "", "fr") || x.libelle.localeCompare(y.libelle, "fr"));
   papFinal.sort((x, y) => x.libelle.localeCompare(y.libelle, "fr"));
@@ -998,7 +1008,8 @@ function lireFiltres(){
     termine: document.getElementById("chkTermine").checked,
     interrompu: document.getElementById("chkInterrompu").checked,
     grpSponsor: document.getElementById("selGrpSponsor").value,
-    nature: document.getElementById("selNature").value
+    nature: document.getElementById("selNature").value,
+    origine: document.getElementById("selOrigine").value
   };
 }
 
@@ -1017,8 +1028,53 @@ function pastilleP2A(millesime){
   return millesime ? '<span class="pastille-p2a" title="Millésime P2A">' + echapper(millesime) + "</span>" : "";
 }
 
+/* Type d'origine : CASDIS, ajout en cours d'année, ou autre valeur. */
+function typeOrigine(v){
+  if (/casdis/i.test(v || "")) return "casdis";
+  if (/ajout/i.test(v || "")) return "ajout";
+  return v ? "autre" : "";
+}
+
+/* Valeurs spéciales du filtre Origine. */
+const ORIGINE_CASDIS = "__casdis", ORIGINE_AJOUT = "__ajout", ORIGINE_VIDE = "__vide";
+
+function garderOrigine(valeur, filtre){
+  if (!filtre) return true;
+  const v = valeur || "";
+  if (filtre === ORIGINE_CASDIS) return /casdis/i.test(v);
+  if (filtre === ORIGINE_AJOUT) return /ajout/i.test(v);
+  if (filtre === ORIGINE_VIDE) return !v;
+  return v.split(" · ").includes(filtre);
+}
+
+function libelleFiltreOrigine(filtre){
+  if (filtre === ORIGINE_CASDIS) return "CASDIS (tous)";
+  if (filtre === ORIGINE_AJOUT) return "Ajout (tous)";
+  if (filtre === ORIGINE_VIDE) return "Non renseignée";
+  return filtre;
+}
+
+/* Liste du filtre : valeurs présentes dans la table des projets / actions. */
+function remplirOrigines(){
+  const sel = document.getElementById("selOrigine");
+  const courant = sel.value;
+  const T = reglages.tAction, ctx = ctxDe(T);
+  const valeurs = new Set();
+  ctx.lignes.forEach(l => origineBrute(T, l).split(" · ").filter(Boolean).forEach(v => valeurs.add(v)));
+  const tri = Array.from(valeurs).sort((a, b) =>
+    (typeOrigine(a) === "casdis" ? 0 : typeOrigine(a) === "ajout" ? 1 : 2)
+    - (typeOrigine(b) === "casdis" ? 0 : typeOrigine(b) === "ajout" ? 1 : 2)
+    || a.localeCompare(b, "fr", { numeric: true }));
+  const options = [["", "Toutes"], [ORIGINE_CASDIS, "CASDIS (tous)"], [ORIGINE_AJOUT, "Ajout (tous)"]]
+    .concat(tri.map(v => [v, v]))
+    .concat([[ORIGINE_VIDE, "Non renseignée"]]);
+  sel.innerHTML = options.map(([v, l]) =>
+    '<option value="' + echapper(v) + '">' + echapper(l) + "</option>").join("");
+  sel.value = options.some(([v]) => v === courant) ? courant : "";
+}
+
 function pastilleOrigine(origine){
-  return origine ? '<span class="pastille-origine" title="Origine d\'inscription (CASDIS / ajout)">' + echapper(origine) + "</span>" : "";
+  return origine ? '<span class="pastille-origine ' + typeOrigine(origine) + '" title="Origine d\'inscription (CASDIS / ajout)">' + echapper(origine) + "</span>" : "";
 }
 
 function ligneHtml(classe, libelle, obj, visible, avecRepli, cleRepli, millesime, origine){
@@ -1081,6 +1137,7 @@ function etatHtml(etat, pourImpression){
   }
   if (ef.service && etat.titre !== ef.service) meta.push("Service : <b>" + echapper(ef.service) + "</b>");
   if (ef.projet && etat.titre !== ef.projet) meta.push("Projet : <b>" + echapper(ef.projet) + "</b>");
+  if (ef.origine) meta.push("Origine : <b>" + echapper(libelleFiltreOrigine(ef.origine)) + "</b>");
   if (etat.chef) meta.push("Chef de groupement : <b>" + echapper(etat.chef) + "</b>");
   if (etat.sousDirection) meta.push("Sous-direction : <b>" + echapper(etat.sousDirection) + "</b>");
   if (etat.sponsor) meta.push("Sponsor CODIR : <b>" + echapper(etat.sponsor) + "</b>");
@@ -1400,6 +1457,7 @@ function ecrireLigne(ws, l, colonnes, prefixe, repeterParents){
     if (contexte) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BEIGE_CONTEXTE } };
   });
 
+  teinterOrigine(r.getCell(decalage + 7), l.origine);
   if (l.o && l.o.echeanceDate){
     const cell = r.getCell(iEcheance);
     cell.value = l.o.echeanceDate;
@@ -1622,6 +1680,7 @@ function construireEtatSponsor(sponsor){
     garderStatut(p.a)
     && (!f.texte || norm(p.a.cleProjet).includes(f.texte))
     && (!f.nature || p.a.nature === f.nature)
+    && garderOrigine(p.a.origine, f.origine)
     && (!f.grpSponsor || (p.grpLibelle || SANS_GROUPEMENT) === f.grpSponsor));
 
   /* Regroupement par groupement porteur. */
@@ -1711,6 +1770,7 @@ function etatSponsorHtml(etat){
   if (ef.grpSponsor) meta.push("Filtre groupement : <b>"
     + echapper(etat.affichageGroupements[ef.grpSponsor] || ef.grpSponsor) + "</b>");
   meta.push("Périmètre : <b>projets " + (ef.nature || "PEPS et AV") + " uniquement</b>");
+  if (ef.origine) meta.push("Origine : <b>" + echapper(libelleFiltreOrigine(ef.origine)) + "</b>");
   h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
   h.push("</div>");
 
@@ -1806,6 +1866,19 @@ const COLONNES_SPONSOR = [
   { titre: "Statut", largeur: 14, centre: true }
 ];
 
+/* Cellule Origine teintée selon son type (CASDIS / ajout / autre). */
+const TEINTES_ORIGINE_XL = {
+  casdis: { fond: "FFE3E8F6", encre: "FF002395" },
+  ajout:  { fond: "FFFDEBD8", encre: "FFA2551A" },
+  autre:  { fond: "FFEEEEEC", encre: "FF55554F" }
+};
+function teinterOrigine(cell, valeur){
+  const t = TEINTES_ORIGINE_XL[typeOrigine(valeur)];
+  if (!t) return;
+  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: t.fond } };
+  cell.font = { name: "Tahoma", size: 10, bold: true, color: { argb: t.encre } };
+}
+
 function ecrireLigneSponsor(ws, p, colonnes, prefixe){
   const a = p.a;
   const r = ws.addRow(prefixe.concat([
@@ -1819,6 +1892,7 @@ function ecrireLigneSponsor(ws, p, colonnes, prefixe){
     cell.alignment = { vertical: "middle", wrapText: true, horizontal: col.centre ? "center" : "left" };
     cell.border = { bottom: { style: "hair", color: { argb: BORDURE } } };
   });
+  teinterOrigine(r.getCell(d + 5), a.origine);
   if (a.echeanceDate){
     const cell = r.getCell(d + 8);
     cell.value = a.echeanceDate;
@@ -1887,7 +1961,7 @@ function brancherInterface(){
   document.getElementById("vueGroupement").addEventListener("click", () => changerVue("groupement"));
   document.getElementById("vueSponsor").addEventListener("click", () => changerVue("sponsor"));
   ["recherche", "selCollaborateur", "selService", "selModeCollab", "selProjet", "selPerimetre",
-   "chkTermine", "chkInterrompu", "selGrpSponsor", "selNature"].forEach(id => {
+   "chkTermine", "chkInterrompu", "selGrpSponsor", "selNature", "selOrigine"].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener(el.type === "search" ? "input" : "change", afficher);
   });
@@ -1924,6 +1998,7 @@ async function demarrerDonnees(){
     };
     remplirGroupements();
     remplirSponsors();
+    remplirOrigines();
     afficher();
   } catch (err){
     zone.innerHTML = '<div class="avertissement">Impossible de lire les tables. Vérifiez leurs noms dans les réglages et l\'accès complet au document.<br>'
