@@ -1180,10 +1180,11 @@ function infosCollaborateur(nom){
            : { fonction: "", groupement: "" };
 }
 
-function remplirListe(sel, valeurs){
+function remplirListe(sel, valeurs, affichage){
   const actuel = sel.value;
+  const etiquette = n => (affichage && affichage[n]) || n;
   sel.innerHTML = '<option value="">Tous</option>'
-    + valeurs.map(n => '<option value="' + echapper(n) + '">' + echapper(n) + "</option>").join("");
+    + valeurs.map(n => '<option value="' + echapper(n) + '">' + echapper(etiquette(n)) + "</option>").join("");
   sel.value = valeurs.includes(actuel) ? actuel : "";
 }
 
@@ -1492,6 +1493,11 @@ async function exporterExcel(tousLesGroupements){
 let vue = "groupement";
 let sponsorCourant = TOUS;
 const SANS_GROUPEMENT = "Sans groupement identifié";
+
+/* Libellé de groupement suivi de son acronyme : « Libellé (CODE) ». */
+function grpAvecCode(libelle, code){
+  return code && code !== libelle ? libelle + " (" + code + ")" : libelle;
+}
 const SANS_SPONSOR = "Sans sponsor identifié";
 
 function ligneGroupementDe(valeur){
@@ -1566,6 +1572,11 @@ function construireEtatSponsor(sponsor){
   /* Groupements proposés dans le filtre : ceux du sponsor, avant filtrage. */
   const groupementsDisponibles = Array.from(new Set(duSponsor.map(p => p.grpLibelle || SANS_GROUPEMENT)))
     .sort((a, b) => a.localeCompare(b, "fr"));
+  const affichageGroupements = {};
+  duSponsor.forEach(p => {
+    if (p.grpLibelle && !affichageGroupements[p.grpLibelle])
+      affichageGroupements[p.grpLibelle] = grpAvecCode(p.grpLibelle, p.grpCode);
+  });
 
   const garderStatut = o => {
     const s = norm(o.statut);
@@ -1630,7 +1641,7 @@ function construireEtatSponsor(sponsor){
 
   return {
     sponsor, tous, titre, nomCourt: morceaux.join(" "),
-    filtres: f, groupementsDisponibles, groupes, compte,
+    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte,
     sousDirections: Array.from(sousDirections).sort((a, b) => a.localeCompare(b, "fr")),
     codesGroupements: Array.from(codesGroupements).sort((a, b) => a.localeCompare(b, "fr"))
   };
@@ -1662,7 +1673,8 @@ function etatSponsorHtml(etat){
   const meta = [];
   if (etat.sousDirections.length) meta.push("Sous-direction : <b>" + echapper(etat.sousDirections.join(", ")) + "</b>");
   if (etat.codesGroupements.length) meta.push("Groupements : <b>" + echapper(etat.codesGroupements.join(", ")) + "</b>");
-  if (ef.grpSponsor) meta.push("Filtre groupement : <b>" + echapper(ef.grpSponsor) + "</b>");
+  if (ef.grpSponsor) meta.push("Filtre groupement : <b>"
+    + echapper(etat.affichageGroupements[ef.grpSponsor] || ef.grpSponsor) + "</b>");
   meta.push("Périmètre : <b>projets " + (ef.nature || "PEPS et AV") + " uniquement</b>");
   h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
   h.push("</div>");
@@ -1712,7 +1724,7 @@ function afficherSponsor(){
   let etat = construireEtatSponsor(sponsorCourant);
   const sel = document.getElementById("selGrpSponsor");
   const avant = sel.value;
-  remplirListe(sel, etat.groupementsDisponibles);
+  remplirListe(sel, etat.groupementsDisponibles, etat.affichageGroupements);
   if (sel.value !== avant) etat = construireEtatSponsor(sponsorCourant);
   zone.innerHTML =
     '<div class="entete-impression"><div class="t">État par sponsor CODIR — ' + echapper(etat.titre)
@@ -1747,7 +1759,7 @@ function changerVue(v){
 
 /* Export Excel du mode sponsor : une ligne par projet. */
 const COLONNES_SPONSOR = [
-  { titre: "Groupement", largeur: 24, centre: true },
+  { titre: "Groupement", largeur: 30, centre: true },
   { titre: "Projet_Action", largeur: 46 },
   { titre: "Nature", largeur: 9, centre: true },
   { titre: "Millésime P2A", largeur: 13, centre: true },
@@ -1761,7 +1773,7 @@ const COLONNES_SPONSOR = [
 function ecrireLigneSponsor(ws, p, colonnes, prefixe){
   const a = p.a;
   const r = ws.addRow(prefixe.concat([
-    p.grpLibelle || SANS_GROUPEMENT, a.cleProjet, a.nature, a.millesime || "",
+    p.grpLibelle ? grpAvecCode(p.grpLibelle, p.grpCode) : SANS_GROUPEMENT, a.cleProjet, a.nature, a.millesime || "",
     a.porteur, a.service, null, null, a.statut
   ]));
   const d = prefixe.length;
