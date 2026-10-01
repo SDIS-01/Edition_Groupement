@@ -98,6 +98,19 @@
   .aide{font-size:11px;color:var(--attenue);margin-top:2px;}
 
   .entete-impression{display:none;}
+
+  /* Bascule groupement / sponsor CODIR */
+  .bascule{display:flex;border:1px solid var(--bleu);border-radius:3px;overflow:hidden;}
+  .bascule button{border:none;border-radius:0;background:#fff;color:var(--bleu);padding:5px 11px;}
+  .bascule button.actif{background:var(--bleu);color:#fff;}
+  body.vue-sponsor .seul-grp{display:none !important;}
+  body:not(.vue-sponsor) .seul-sp{display:none !important;}
+  .tag{flex:0 0 auto;font-size:10.5px;padding:0 6px;border-radius:3px;background:#F6F2EC;
+    border:1px solid #C9BFB1;color:#5A5044;white-space:nowrap;}
+  .info.depasse{color:#C0504D;font-weight:bold;}
+  .ligne.projet-seul{background:#fff;}
+  .ligne.projet-seul .titre{font-size:12.5px;}
+  .groupe-porteur .nb{float:right;font-weight:normal;text-transform:none;letter-spacing:0;color:var(--attenue);}
   @page{size:A4 portrait;margin:14mm 12mm;}
   @media print{
     .barre,.reglages,.repli{display:none !important;}
@@ -108,7 +121,7 @@
     .entete-impression .d{font-size:9pt;color:var(--attenue);}
     .bloc-projet,.ligne{break-inside:avoid;page-break-inside:avoid;}
     .groupe-porteur{break-after:avoid;page-break-after:avoid;}
-    .pastille,.pastille-p2a,.ligne.projet,.repartition div,.puce{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .pastille,.pastille-p2a,.tag,.ligne.projet,.repartition div,.puce{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .section-impression + .section-impression{page-break-before:always;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
@@ -118,10 +131,18 @@
 
 <div class="barre" id="barre">
   <div class="barre-haut">
-    <h1>État par groupement</h1>
-    <div class="champ">
+    <h1>État par</h1>
+    <div class="bascule" role="group" aria-label="Type d'état">
+      <button type="button" id="vueGroupement" class="actif">Groupement</button>
+      <button type="button" id="vueSponsor">Sponsor CODIR</button>
+    </div>
+    <div class="champ seul-grp">
       <span>Groupement</span>
       <select id="selGroupement"></select>
+    </div>
+    <div class="champ seul-sp">
+      <span>Sponsor CODIR</span>
+      <select id="selSponsor"></select>
     </div>
     <div class="grandir"></div>
     <button id="btnImprimer">Imprimer / PDF</button>
@@ -134,26 +155,38 @@
       <span>Recherche</span>
       <input type="search" id="recherche" placeholder="Projet, action, tâche…">
     </div>
-    <div class="champ">
+    <div class="champ seul-sp">
+      <span>Groupement</span>
+      <select id="selGrpSponsor"><option value="">Tous</option></select>
+    </div>
+    <div class="champ seul-sp">
+      <span>Nature</span>
+      <select id="selNature">
+        <option value="">PEPS + AV</option>
+        <option value="PEPS">PEPS</option>
+        <option value="AV">AV</option>
+      </select>
+    </div>
+    <div class="champ seul-grp">
       <span>Collaborateur</span>
       <select id="selCollaborateur"><option value="">Tous</option></select>
     </div>
-    <div class="champ">
+    <div class="champ seul-grp">
       <span>Service</span>
       <select id="selService"><option value="">Tous</option></select>
     </div>
-    <div class="champ">
+    <div class="champ seul-grp">
       <span>Vue collaborateur</span>
       <select id="selModeCollab">
         <option value="lignes" selected>Seulement les lignes dont il est porteur</option>
         <option value="complet">Ses lignes + ses projets en entier</option>
       </select>
     </div>
-    <div class="champ">
+    <div class="champ seul-grp">
       <span>Projet</span>
       <select id="selProjet"><option value="">Tous</option></select>
     </div>
-    <div class="champ">
+    <div class="champ seul-grp">
       <span>Périmètre</span>
       <select id="selPerimetre">
         <option value="portage">Projets portés par le groupement</option>
@@ -935,7 +968,9 @@ function lireFiltres(){
     service: document.getElementById("selService").value,
     perimetre: document.getElementById("selPerimetre").value,
     termine: document.getElementById("chkTermine").checked,
-    interrompu: document.getElementById("chkInterrompu").checked
+    interrompu: document.getElementById("chkInterrompu").checked,
+    grpSponsor: document.getElementById("selGrpSponsor").value,
+    nature: document.getElementById("selNature").value
   };
 }
 
@@ -1112,6 +1147,7 @@ let groupementCourant = null;
 function afficher(){
   const zone = document.getElementById("contenu");
   if (!D.pretes){ zone.innerHTML = '<div class="vide-etat">Chargement des données…</div>'; return; }
+  if (vue === "sponsor"){ afficherSponsor(); return; }
   if (!groupementCourant){ zone.innerHTML = '<div class="vide-etat">Choisissez un groupement.</div>'; return; }
   document.getElementById("selPerimetre").disabled = groupementCourant === TOUS;
   let etat = construireEtat(groupementCourant);
@@ -1184,6 +1220,7 @@ function majCollaborateurs(etat){
    Impression
    ========================================================= */
 function imprimerTous(){
+  if (vue === "sponsor"){ imprimerTousSponsors(); return; }
   const zone = document.getElementById("contenu");
   const sauvegarde = zone.innerHTML;
   const TG = reglages.tGroupement;
@@ -1408,7 +1445,20 @@ async function exporterExcel(tousLesGroupements){
 
     const prises = new Set();
 
-    if (tousLesGroupements){
+    if (vue === "sponsor"){
+      if (tousLesGroupements){
+        const etats = listeSponsors().map(construireEtatSponsor);
+        ajouterFeuilleRecapSponsor(wb, etats);
+        etats.forEach(e => ajouterFeuilleSponsor(wb, e, prises));
+        telecharger(await wb.xlsx.writeBuffer(), "etat_par_sponsor_tous.xlsx");
+      } else {
+        const etat = construireEtatSponsor(sponsorCourant);
+        ajouterFeuilleSponsor(wb, etat, prises);
+        const slug = etat.nomCourt.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80);
+        telecharger(await wb.xlsx.writeBuffer(), "etat_sponsor_" + (slug || "selection") + ".xlsx");
+      }
+    } else if (tousLesGroupements){
       const TG = reglages.tGroupement;
       const codes = ctxDe(TG).lignes.map(l => texte(TG, l, "Groupement")).filter(Boolean);
       const etats = codes.map(construireEtat).filter(Boolean);
@@ -1434,6 +1484,319 @@ async function exporterExcel(tousLesGroupements){
     bouton.disabled = false;
     bouton.textContent = libelleInitial;
   }
+}
+
+/* =========================================================
+   État par sponsor CODIR : projets PEPS / AV uniquement
+   ========================================================= */
+let vue = "groupement";
+let sponsorCourant = TOUS;
+const SANS_GROUPEMENT = "Sans groupement identifié";
+const SANS_SPONSOR = "Sans sponsor identifié";
+
+function ligneGroupementDe(valeur){
+  if (!valeur) return null;
+  const TG = reglages.tGroupement;
+  return ctxDe(TG).lignes.find(l => texte(TG, l, "Groupement") === valeur
+    || texte(TG, l, "Libellé_Groupement", "Libelle_Groupement") === valeur) || null;
+}
+
+function ligneCollaborateurDe(nom){
+  if (!nom) return null;
+  const TC = reglages.tCollaborateur;
+  return ctxDe(TC).lignes.find(l => texte(TC, l, "Nom_Prénom", "Nom_Prenom", "Nom") === nom) || null;
+}
+
+/* Sponsor d'un projet : colonne Sponsor_CODIR du projet si elle est renseignée,
+   sinon celui du groupement porteur, sinon celui du collaborateur porteur. */
+function rattachementSponsor(ligne, a){
+  const TG = reglages.tGroupement, TC = reglages.tCollaborateur;
+  const collab = ligneCollaborateurDe(a.porteur);
+  const grp = a.groupement || (collab ? texte(TC, collab, "Groupement") : "");
+  const lg = ligneGroupementDe(grp);
+  const sponsor = texte(reglages.tAction, ligne, "Sponsor_CODIR")
+    || (lg ? texte(TG, lg, "Sponsor_CODIR") : "")
+    || (collab ? texte(TC, collab, "Sponsor_CODIR") : "");
+  return {
+    sponsor,
+    grpCode: lg ? texte(TG, lg, "Groupement") : grp,
+    grpLibelle: lg ? (texte(TG, lg, "Libellé_Groupement", "Libelle_Groupement") || texte(TG, lg, "Groupement")) : grp,
+    sousDirection: lg ? texte(TG, lg, "Sous-direction", "Sous_direction") : ""
+  };
+}
+
+/* Tous les projets PEPS / AV (hors MEO), avec leur rattachement. */
+function projetsPepsAv(){
+  const TA = reglages.tAction;
+  const res = [];
+  ctxDe(TA).lignes.forEach(l => {
+    const a = lireAction(l);
+    if (a.nature === "MEO" || !a.cleProjet) return;
+    res.push(Object.assign({ a }, rattachementSponsor(l, a)));
+  });
+  return res;
+}
+
+function listeSponsors(){
+  const TG = reglages.tGroupement;
+  const s = new Set();
+  ctxDe(TG).lignes.forEach(l => { const v = texte(TG, l, "Sponsor_CODIR"); if (v) s.add(v); });
+  let sansSponsor = false;
+  projetsPepsAv().forEach(p => { if (p.sponsor) s.add(p.sponsor); else sansSponsor = true; });
+  const liste = Array.from(s).sort((a, b) => a.localeCompare(b, "fr"));
+  if (sansSponsor) liste.push(SANS_SPONSOR);
+  return liste;
+}
+
+function remplirSponsors(){
+  const sel = document.getElementById("selSponsor");
+  const liste = listeSponsors();
+  sel.innerHTML = '<option value="' + TOUS + '">— Tous les sponsors —</option>'
+    + liste.map(n => '<option value="' + echapper(n) + '">' + echapper(n) + "</option>").join("");
+  if (sponsorCourant !== TOUS && !liste.includes(sponsorCourant)) sponsorCourant = TOUS;
+  sel.value = sponsorCourant;
+}
+
+function construireEtatSponsor(sponsor){
+  const f = lireFiltres();
+  const tous = sponsor === TOUS;
+  const duSponsor = projetsPepsAv().filter(p => tous
+    || (sponsor === SANS_SPONSOR ? !p.sponsor : p.sponsor === sponsor));
+
+  /* Groupements proposés dans le filtre : ceux du sponsor, avant filtrage. */
+  const groupementsDisponibles = Array.from(new Set(duSponsor.map(p => p.grpLibelle || SANS_GROUPEMENT)))
+    .sort((a, b) => a.localeCompare(b, "fr"));
+
+  const garderStatut = o => {
+    const s = norm(o.statut);
+    if (s === norm("Terminé")) return f.termine;
+    if (s === norm("Interrompu")) return f.interrompu;
+    return true;
+  };
+  const projets = duSponsor.filter(p =>
+    garderStatut(p.a)
+    && (!f.texte || norm(p.a.cleProjet).includes(f.texte))
+    && (!f.nature || p.a.nature === f.nature)
+    && (!f.grpSponsor || (p.grpLibelle || SANS_GROUPEMENT) === f.grpSponsor));
+
+  /* Regroupement par groupement porteur. */
+  const parGroupement = new Map();
+  projets.forEach(p => {
+    const cle = p.grpLibelle || SANS_GROUPEMENT;
+    if (!parGroupement.has(cle)) parGroupement.set(cle, { libelle: cle, code: p.grpCode, projets: [] });
+    parGroupement.get(cle).projets.push(p);
+  });
+  const groupes = Array.from(parGroupement.values()).sort((x, y) => {
+    if (x.libelle === SANS_GROUPEMENT) return 1;
+    if (y.libelle === SANS_GROUPEMENT) return -1;
+    return x.libelle.localeCompare(y.libelle, "fr");
+  });
+  groupes.forEach(g => g.projets.sort((x, y) => x.a.cleProjet.localeCompare(y.a.cleProjet, "fr")));
+
+  /* Compteurs. */
+  const aujourdHui = new Date(); aujourdHui.setHours(0, 0, 0, 0);
+  const compte = { projets: projets.length, peps: 0, av: 0, autres: 0, depasses: 0, moyenne: 0, statuts: {} };
+  let somme = 0;
+  projets.forEach(p => {
+    const a = p.a;
+    if (a.nature === "PEPS") compte.peps++; else if (a.nature === "AV") compte.av++; else compte.autres++;
+    somme += a.pourcent;
+    p.depasse = !!a.echeanceDate && a.echeanceDate < aujourdHui && a.pourcent < 100 && !a.interrompu;
+    if (p.depasse) compte.depasses++;
+    const cle = a.interrompu ? "Interrompu"
+      : a.pourcent >= 100 ? "Terminé" : a.pourcent > 0 ? "En cours" : "À engager";
+    compte.statuts[cle] = (compte.statuts[cle] || 0) + 1;
+  });
+  compte.moyenne = projets.length ? Math.round(somme / projets.length) : 0;
+
+  /* Sous-directions et groupements rattachés au sponsor (table Groupement). */
+  const TG = reglages.tGroupement;
+  const sousDirections = new Set(), codesGroupements = new Set();
+  if (!tous){
+    ctxDe(TG).lignes.forEach(l => {
+      const sp = texte(TG, l, "Sponsor_CODIR");
+      if (sponsor === SANS_SPONSOR ? sp : sp !== sponsor) return;
+      const sd = texte(TG, l, "Sous-direction", "Sous_direction");
+      if (sd) sousDirections.add(sd);
+      const c = texte(TG, l, "Groupement");
+      if (c) codesGroupements.add(c);
+    });
+  }
+
+  const titre = tous ? "Tous les sponsors CODIR" : sponsor;
+  const morceaux = [tous ? "tous" : sponsor];
+  if (f.grpSponsor) morceaux.push(f.grpSponsor);
+  if (f.nature) morceaux.push(f.nature);
+
+  return {
+    sponsor, tous, titre, nomCourt: morceaux.join(" "),
+    filtres: f, groupementsDisponibles, groupes, compte,
+    sousDirections: Array.from(sousDirections).sort((a, b) => a.localeCompare(b, "fr")),
+    codesGroupements: Array.from(codesGroupements).sort((a, b) => a.localeCompare(b, "fr"))
+  };
+}
+
+function ligneProjetSeulHtml(p, avecSponsor){
+  const a = p.a;
+  const h = ['<div class="ligne projet-seul">'];
+  h.push('<span class="titre">' + echapper(a.cleProjet) + "</span>");
+  if (a.nature) h.push('<span class="tag">' + echapper(a.nature) + "</span>");
+  if (a.millesime) h.push('<span class="tag" title="Millésime P2A">' + echapper(a.millesime) + "</span>");
+  if (avecSponsor && p.sponsor) h.push('<span class="info">' + echapper(p.sponsor) + "</span>");
+  if (a.porteur) h.push('<span class="info">' + echapper(a.porteur) + "</span>");
+  if (a.echeance) h.push('<span class="info' + (p.depasse ? " depasse" : "") + '"'
+    + (p.depasse ? ' title="Échéance dépassée"' : "") + ">éch. " + echapper(a.echeance) + "</span>");
+  h.push(pastille(a));
+  h.push("</div>");
+  return h.join("");
+}
+
+function etatSponsorHtml(etat){
+  const c = etat.compte;
+  const ef = etat.filtres;
+  const ordre = ["À engager", "En cours", "Terminé", "Interrompu"];
+  const couleurs = { "À engager": "#C0504D", "En cours": "#F79646", "Terminé": "#9BBB59", "Interrompu": "#4A4A4A" };
+
+  const h = ['<div class="entete-grp">'];
+  h.push("<h2>" + (etat.tous ? "" : "Sponsor CODIR : ") + echapper(etat.titre) + "</h2>");
+  const meta = [];
+  if (etat.sousDirections.length) meta.push("Sous-direction : <b>" + echapper(etat.sousDirections.join(", ")) + "</b>");
+  if (etat.codesGroupements.length) meta.push("Groupements : <b>" + echapper(etat.codesGroupements.join(", ")) + "</b>");
+  if (ef.grpSponsor) meta.push("Filtre groupement : <b>" + echapper(ef.grpSponsor) + "</b>");
+  meta.push("Périmètre : <b>projets " + (ef.nature || "PEPS et AV") + " uniquement</b>");
+  h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
+  h.push("</div>");
+
+  if (!D.metaOk){
+    h.push('<div class="avertissement">Métadonnées du document illisibles : les colonnes de référence peuvent s\'afficher sous forme de numéro de ligne.</div>');
+  }
+
+  h.push('<div class="compteurs">');
+  h.push('<div class="compteur"><div class="n">' + c.projets + '</div><div class="l">projets PEPS / AV</div></div>');
+  h.push('<div class="compteur"><div class="n">' + c.peps + " / " + c.av + '</div><div class="l">dont PEPS / AV</div></div>');
+  h.push('<div class="compteur"><div class="n">' + c.moyenne + ' %</div><div class="l">avancement moyen</div></div>');
+  h.push('<div class="compteur"><div class="n">' + c.depasses + '</div><div class="l">échéance dépassée</div></div>');
+  h.push("</div>");
+
+  if (c.projets){
+    h.push('<div class="repartition">');
+    ordre.forEach(s => {
+      const n = c.statuts[s] || 0;
+      if (n) h.push('<div style="width:' + (n / c.projets * 100) + "%;background:" + couleurs[s] + '"></div>');
+    });
+    h.push("</div>");
+    h.push('<div class="legende">');
+    ordre.forEach(s => {
+      const n = c.statuts[s] || 0;
+      if (n) h.push('<span><i class="puce" style="background:' + couleurs[s] + '"></i>' + s + " : " + n + "</span>");
+    });
+    h.push("</div>");
+  } else {
+    h.push('<div class="vide-etat">Aucun projet ne correspond à la sélection.</div>');
+    return h.join("");
+  }
+
+  etat.groupes.forEach(g => {
+    h.push('<div class="groupe-porteur">' + echapper(g.libelle)
+      + (g.code && g.code !== g.libelle ? " (" + echapper(g.code) + ")" : "")
+      + '<span class="nb">' + g.projets.length + " projet" + (g.projets.length > 1 ? "s" : "") + "</span></div>");
+    h.push('<div class="bloc-projet">');
+    g.projets.forEach(p => h.push(ligneProjetSeulHtml(p, etat.tous)));
+    h.push("</div>");
+  });
+  return h.join("");
+}
+
+function afficherSponsor(){
+  const zone = document.getElementById("contenu");
+  let etat = construireEtatSponsor(sponsorCourant);
+  const sel = document.getElementById("selGrpSponsor");
+  const avant = sel.value;
+  remplirListe(sel, etat.groupementsDisponibles);
+  if (sel.value !== avant) etat = construireEtatSponsor(sponsorCourant);
+  zone.innerHTML =
+    '<div class="entete-impression"><div class="t">État par sponsor CODIR — ' + echapper(etat.titre)
+    + '</div><div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
+    + '<div class="section-impression">' + etatSponsorHtml(etat) + "</div>";
+}
+
+function imprimerTousSponsors(){
+  const zone = document.getElementById("contenu");
+  const sauvegarde = zone.innerHTML;
+  const morceaux = listeSponsors().map(sp =>
+    '<div class="section-impression">' + etatSponsorHtml(construireEtatSponsor(sp)) + "</div>");
+  zone.innerHTML =
+    '<div class="entete-impression"><div class="t">État par sponsor CODIR — tous les sponsors</div>'
+    + '<div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
+    + morceaux.join("");
+  window.print();
+  setTimeout(() => { zone.innerHTML = sauvegarde; }, 800);
+}
+
+function changerVue(v){
+  vue = v;
+  document.body.classList.toggle("vue-sponsor", v === "sponsor");
+  document.getElementById("vueGroupement").classList.toggle("actif", v === "groupement");
+  document.getElementById("vueSponsor").classList.toggle("actif", v === "sponsor");
+  const cible = v === "sponsor" ? "sponsors" : "groupements";
+  document.getElementById("btnTous").textContent = "PDF tous " + cible;
+  document.getElementById("btnExcelTous").textContent = "Excel tous " + cible;
+  document.title = v === "sponsor" ? "État par sponsor CODIR" : "État par groupement";
+  afficher();
+}
+
+/* Export Excel du mode sponsor : une ligne par projet. */
+const COLONNES_SPONSOR = [
+  { titre: "Groupement", largeur: 24, centre: true },
+  { titre: "Projet_Action", largeur: 46 },
+  { titre: "Nature", largeur: 9, centre: true },
+  { titre: "Millésime P2A", largeur: 13, centre: true },
+  { titre: "Porteur", largeur: 24, centre: true },
+  { titre: "Service", largeur: 20, centre: true },
+  { titre: "Échéance", largeur: 14, centre: true },
+  { titre: "Avct", largeur: 11, centre: true },
+  { titre: "Statut", largeur: 14, centre: true }
+];
+
+function ecrireLigneSponsor(ws, p, colonnes, prefixe){
+  const a = p.a;
+  const r = ws.addRow(prefixe.concat([
+    p.grpLibelle || SANS_GROUPEMENT, a.cleProjet, a.nature, a.millesime || "",
+    a.porteur, a.service, null, null, a.statut
+  ]));
+  const d = prefixe.length;
+  colonnes.forEach((col, i) => {
+    const cell = r.getCell(i + 1);
+    cell.font = { name: "Tahoma", size: 10, color: { argb: i < d + 1 ? TAUPE : ENCRE } };
+    cell.alignment = { vertical: "middle", wrapText: true, horizontal: col.centre ? "center" : "left" };
+    cell.border = { bottom: { style: "hair", color: { argb: BORDURE } } };
+  });
+  if (a.echeanceDate){
+    const cell = r.getCell(d + 7);
+    cell.value = a.echeanceDate;
+    cell.numFmt = "dd/mm/yyyy";
+    if (p.depasse) cell.font = { name: "Tahoma", size: 10, bold: true, color: { argb: "FFC0504D" } };
+  }
+  const cell = r.getCell(d + 8);
+  const couleur = couleurExcel(a);
+  cell.value = a.pourcent / 100;
+  cell.numFmt = "0 %";
+  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: couleur.fond } };
+  cell.font = { name: "Tahoma", size: 10, bold: true, color: { argb: couleur.blanc ? "FFFFFFFF" : ENCRE } };
+}
+
+function ajouterFeuilleSponsor(wb, etat, prises){
+  const ws = preparerFeuille(wb, nomFeuille({ nomCourt: etat.titre }, prises), COLONNES_SPONSOR, false);
+  etat.groupes.forEach(g => g.projets.forEach(p => ecrireLigneSponsor(ws, p, COLONNES_SPONSOR, [])));
+  return ws;
+}
+
+function ajouterFeuilleRecapSponsor(wb, etats){
+  const colonnes = [{ titre: "Sponsor CODIR", largeur: 24, centre: true }].concat(COLONNES_SPONSOR);
+  const ws = preparerFeuille(wb, "Récapitulatif", colonnes, true);
+  etats.forEach(etat => etat.groupes.forEach(g => g.projets.forEach(p =>
+    ecrireLigneSponsor(ws, p, colonnes, [etat.titre]))));
+  return ws;
 }
 
 /* =========================================================
@@ -1469,8 +1832,14 @@ function brancherInterface(){
     replies = new Set();
     afficher();
   });
+  document.getElementById("selSponsor").addEventListener("change", e => {
+    sponsorCourant = e.target.value;
+    afficher();
+  });
+  document.getElementById("vueGroupement").addEventListener("click", () => changerVue("groupement"));
+  document.getElementById("vueSponsor").addEventListener("click", () => changerVue("sponsor"));
   ["recherche", "selCollaborateur", "selService", "selModeCollab", "selProjet", "selPerimetre",
-   "chkTermine", "chkInterrompu"].forEach(id => {
+   "chkTermine", "chkInterrompu", "selGrpSponsor", "selNature"].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener(el.type === "search" ? "input" : "change", afficher);
   });
@@ -1506,6 +1875,7 @@ async function demarrerDonnees(){
       pap: facteurAvancement(reglages.tPapripact)
     };
     remplirGroupements();
+    remplirSponsors();
     afficher();
   } catch (err){
     zone.innerHTML = '<div class="avertissement">Impossible de lire les tables. Vérifiez leurs noms dans les réglages et l\'accès complet au document.<br>'
