@@ -130,6 +130,41 @@
   .cpt-corps input[type=number]{width:56px;font-family:inherit;font-size:12px;padding:4px 6px;border:1px solid var(--trait);border-radius:3px;}
   .mini{padding:2px 7px;font-size:11px;}
   .compteur .p{font-size:12px;font-weight:normal;color:var(--attenue);margin-left:3px;}
+  /* Présentation en synthèse + tableaux */
+  .blocs{display:grid;gap:8px;margin:4px 0 12px;}
+  .bloc{border:1px solid var(--trait);border-radius:3px;padding:7px 10px;background:#FCFAF7;min-width:0;}
+  .bloc .t{font-size:10.5px;color:var(--liseret);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+  .bloc .n{font-size:20px;color:var(--bleu);font-weight:bold;line-height:1.1;}
+  .bloc .n.alerte{color:#C0504D;}
+  .bloc .l{font-size:11px;color:var(--attenue);}
+  .tab{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 4px;}
+  .tab th{background:var(--liseret);color:#fff;font-weight:normal;text-align:left;padding:4px 6px;font-size:11px;}
+  .tab td{padding:4px 6px;border-bottom:1px solid #EDE7DD;font-size:11.5px;vertical-align:middle;overflow:hidden;}
+  .tab th.c,.tab td.c{text-align:center;}
+  .tab td.lib{word-break:break-word;}
+  .tab.plat tbody tr:nth-child(even) td{background:#FAF7F2;}
+  .tab tr.pj td{background:var(--bleu-clair);}
+  .tab tr.pj td.lib{font-weight:bold;color:var(--bleu-fonce);}
+  .tab tr.ac td.lib{padding-left:22px;}
+  .tab tr.ta td.lib{padding-left:40px;}
+  .tab tr.rub td{background:#FBF9F6;font-weight:bold;color:var(--bleu-fonce);}
+  .tab tr.contexte td{font-style:italic;color:var(--attenue);}
+  .tab tr.tot td{background:var(--bleu-clair);font-weight:bold;color:var(--bleu-fonce);border-top:1px solid var(--liseret);}
+  .tab .pastille-p2a,.tab .pastille-origine{margin-left:0;}
+  .tab .repli{display:inline-block;margin-right:4px;}
+  .ech-depasse{color:#C0504D;font-weight:bold;}
+  .w-nat{width:46px;} .w-p2a{width:54px;} .w-origine{width:104px;} .w-porteur{width:112px;}
+  .w-service{width:84px;} .w-echeance{width:76px;} .w-avct{width:80px;} .w-cat{width:130px;}
+  .w-nb{width:74px;}
+  .bandeau{display:flex;align-items:baseline;gap:10px;background:var(--bleu-clair);border-left:4px solid var(--liseret);
+    padding:5px 9px;margin:14px 0 0;}
+  .bandeau .nom{font-weight:bold;color:var(--bleu-fonce);font-size:12.5px;}
+  .bandeau .info{font-size:11px;color:var(--attenue);}
+  .titre-partie{font-size:13px;color:var(--bleu);font-weight:bold;margin:16px 0 2px;border-bottom:1px solid var(--trait);padding-bottom:2px;}
+  body.sans-col-nat .col-nat, body.sans-col-p2a .col-p2a, body.sans-col-origine .col-origine,
+  body.sans-col-porteur .col-porteur, body.sans-col-service .col-service,
+  body.sans-col-echeance .col-echeance{display:none;}
+  #selProjet{width:280px;}
   @page{size:A4 portrait;margin:14mm 12mm;}
   @media print{
     .barre,.reglages,.repli{display:none !important;}
@@ -142,6 +177,12 @@
     .groupe-porteur{break-after:avoid;page-break-after:avoid;}
     .pastille,.pastille-p2a,.pastille-origine,.tag,.ligne.projet,.repartition div,.puce{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .section-impression + .section-impression{page-break-before:always;}
+    .tab thead{display:table-header-group;}
+    .tab tr{break-inside:avoid;page-break-inside:avoid;}
+    .bandeau,.titre-partie{break-after:avoid;page-break-after:avoid;}
+    .synthese{break-after:page;page-break-after:always;}
+    .annexes{break-before:page;page-break-before:always;}
+    .bloc,.tab th,.tab tr.pj td,.tab tr.tot td,.tab tr.rub td,.bandeau,.tab.plat tbody tr td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
@@ -164,7 +205,7 @@
       <select id="selSponsor"></select>
     </div>
     <div class="grandir"></div>
-    <button class="secondaire seul-sp" id="btnEntete" title="Choisir les compteurs affichés en tête de l'édition">En-tête</button>
+    <button class="secondaire" id="btnEntete" title="Choisir les compteurs affichés en tête de l'édition">En-tête</button>
     <button id="btnImprimer">Imprimer / PDF</button>
     <button class="secondaire" id="btnTous">PDF tous groupements</button>
     <button id="btnExcel">Excel</button>
@@ -208,7 +249,8 @@
     </div>
     <div class="champ seul-grp">
       <span>Projet</span>
-      <select id="selProjet"><option value="">Tous</option></select>
+      <input type="search" id="selProjet" list="listeProjets" placeholder="Tous — tapez pour chercher" autocomplete="off">
+      <datalist id="listeProjets"></datalist>
     </div>
     <div class="champ seul-grp">
       <span>Périmètre</span>
@@ -224,6 +266,17 @@
         <label><input type="checkbox" id="chkInterrompu"> Interrompu</label>
       </div>
     </div>
+    <div class="champ">
+      <span>Colonnes imprimées</span>
+      <div class="cases" id="choixColonnes">
+        <label><input type="checkbox" data-col="nat" checked> Nature</label>
+        <label><input type="checkbox" data-col="p2a" checked> P2A</label>
+        <label><input type="checkbox" data-col="origine" checked> Origine</label>
+        <label class="seul-sp"><input type="checkbox" data-col="porteur" checked> Porteur</label>
+        <label><input type="checkbox" data-col="service" checked> Service</label>
+        <label><input type="checkbox" data-col="echeance" checked> Échéance</label>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -233,11 +286,11 @@
 
 <div class="reglages" id="panneauEntete">
   <div class="reglages-boite large">
-    <h3>En-tête de l'édition par sponsor CODIR</h3>
+    <h3 id="titreEntete">En-tête de l'édition</h3>
     <div class="aide" style="margin-bottom:10px">Les compteurs portent sur les lignes affichées, après filtres
       (groupement, nature, recherche, cases Terminé / Interrompu). L'ancienneté se calcule à partir de l'année
-      de l'origine (CASDIS_2025, Ajout_2026…) ; avec plusieurs origines, la plus ancienne est retenue.
-      Les lignes sans origine (MEC 2023, PAPRIPACT…) n'entrent pas dans un compteur d'ancienneté.</div>
+      de l'identifiant du projet (2023_01_P, 2026_18_A…) : année en cours moins année du projet.
+      Les lignes MEC 2023 et PAPRIPACT n'entrent pas dans un compteur d'ancienneté.</div>
     <div class="cpt-liste" id="listeCompteurs"></div>
     <div class="reglages-actions" style="justify-content:space-between">
       <div style="display:flex;gap:8px">
@@ -941,9 +994,13 @@ function construireEtat(code){
   /* Liste des projets proposés dans le filtre : ceux du périmètre, avant filtrage. */
   const projetsDisponibles = Array.from(arbre.keys());
 
+  /* Projet : correspondance exacte si la saisie est un projet de la liste, sinon recherche partielle. */
+  const projetExact = !!f.projet && arbre.has(f.projet);
+  const garderProjet = cle => !f.projet || (projetExact ? cle === f.projet : norm(cle).includes(norm(f.projet)));
+
   const projetsFinaux = [];
   arbre.forEach(np => {
-    if (f.projet && np.cle !== f.projet) return;
+    if (!garderProjet(np.cle)) return;
     if (!garderOrigine(np.a ? np.a.origine : origineProjet(np.cle), f.origine)) return;
     const actionsFinales = [];
     np.actions.forEach(na => {
@@ -1153,13 +1210,8 @@ function sectionAnnexe(titre, lignes, grouperParCategorie){
 
 function etatHtml(etat, pourImpression){
   const f = lireFiltres();
-  const c = etat.compte;
-  const total = c.projets + c.actions + c.taches + c.mec + c.papripact;
-  const ordre = ["À engager", "En cours", "Terminé", "Interrompu"];
-  const couleurs = { "À engager": "#C0504D", "En cours": "#F79646", "Terminé": "#9BBB59", "Interrompu": "#4A4A4A" };
-
   const ef = etat.filtres || f;
-  const h = ['<div class="entete-grp">'];
+  const h = ['<div class="synthese"><div class="entete-grp">'];
   h.push('<h2>' + echapper(etat.titre)
     + (etat.tous ? "" : ' <span style="font-weight:normal;font-size:13px">(' + echapper(etat.code) + ")</span>")
     + "</h2>");
@@ -1193,34 +1245,38 @@ function etatHtml(etat, pourImpression){
     h.push('<div class="avertissement">Rattachement calculé depuis la colonne Groupement de chaque ligne : les listes de la table Groupement sont absentes.</div>');
   }
 
-  h.push('<div class="compteurs">');
-  h.push('<div class="compteur"><div class="n">' + c.projets + '</div><div class="l">projets rattachés</div></div>');
-  h.push('<div class="compteur"><div class="n">' + c.actions + '</div><div class="l">actions MEO</div></div>');
-  h.push('<div class="compteur"><div class="n">' + c.taches + '</div><div class="l">tâches</div></div>');
-  h.push('<div class="compteur"><div class="n">' + c.mec + '</div><div class="l">MEC 2023</div></div>');
-  h.push('<div class="compteur"><div class="n">' + c.papripact + '</div><div class="l">PAPRIPACT</div></div>');
-  h.push("</div>");
-
-  if (total){
-    h.push('<div class="repartition">');
-    ordre.forEach(s => {
-      const n = c.statuts[s] || 0;
-      if (n) h.push('<div style="width:' + (n / total * 100) + '%;background:' + couleurs[s] + '"></div>');
-    });
-    h.push("</div>");
-    h.push('<div class="legende">');
-    ordre.forEach(s => {
-      const n = c.statuts[s] || 0;
-      if (n) h.push('<span><i class="puce" style="background:' + couleurs[s] + '"></i>' + s + " : " + n + "</span>");
-    });
-    h.push("</div>");
-  }
-
   if (!etat.projets.length && !etat.mec.length && !etat.papripact.length && !etat.orphelins.length){
-    h.push('<div class="vide-etat">Aucune ligne ne correspond à la sélection.</div>');
+    h.push('<div class="vide-etat">Aucune ligne ne correspond à la sélection.</div></div>');
     return h.join("");
   }
 
+  /* Synthèse : blocs puis tableau par porteur (chaque ligne comptée chez son propre porteur). */
+  h.push(blocsHtml(etat, "groupement"));
+  const pops = populations(etat, "groupement");
+  const parPorteurSynth = new Map();
+  const compterChez = (it, k) => {
+    const po = txt(it.a.porteur) || SANS_PORTEUR;
+    if (!parPorteurSynth.has(po)) parPorteurSynth.set(po, { peps: 0, av: 0, actions: 0, taches: 0, mec: 0, pap: 0 });
+    parPorteurSynth.get(po)[k]++;
+  };
+  pops.PEPS.forEach(it => compterChez(it, "peps"));
+  pops.AV.forEach(it => compterChez(it, "av"));
+  pops.actions.forEach(it => compterChez(it, "actions"));
+  pops.taches.forEach(it => compterChez(it, "taches"));
+  pops.mec.forEach(it => compterChez(it, "mec"));
+  pops.pap.forEach(it => compterChez(it, "pap"));
+  const nomsSynth = Array.from(parPorteurSynth.keys()).sort((a, b) => {
+    if (a === SANS_PORTEUR) return 1;
+    if (b === SANS_PORTEUR) return -1;
+    return a.localeCompare(b, "fr");
+  });
+  const cles = ["peps", "av", "actions", "taches", "mec", "pap"];
+  const total = cles.map(k => nomsSynth.reduce((s, n) => s + parPorteurSynth.get(n)[k], 0));
+  h.push(tableauSynthese(["Porteur", "PEPS", "AV", "Actions MEO", "Tâches", "MEC 2023", "PAPRIPACT"],
+    nomsSynth.map(n => [n].concat(cles.map(k => parPorteurSynth.get(n)[k]))), total));
+  h.push("</div>");
+
+  /* Détail par porteur du projet. */
   const parPorteur = new Map();
   etat.projets.forEach(p => {
     const po = (p.noeud.a && p.noeud.a.porteur) || SANS_PORTEUR;
@@ -1232,39 +1288,57 @@ function etatHtml(etat, pourImpression){
     if (b === SANS_PORTEUR) return -1;
     return a.localeCompare(b, "fr");
   });
+  if (porteurs.length || etat.orphelins.length) h.push('<div class="titre-partie">Détail par porteur</div>');
 
+  const entete = enteteTableau("Projet / action / tâche", false, true, false);
   porteurs.forEach(po => {
-    h.push('<div class="groupe-porteur">' + echapper(po) + "</div>");
-    parPorteur.get(po).forEach(p => {
-      const replie = replies.has(p.noeud.cle) && !pourImpression;
-      h.push('<div class="bloc-projet">');
-      h.push(ligneHtml("projet", p.noeud.cle, p.direct ? p.noeud.a : null, true, true, p.noeud.cle,
-        p.noeud.a ? p.noeud.a.millesime : "", p.noeud.a ? p.noeud.a.origine : ""));
-      if (!replie){
-        p.actions.forEach(a => {
-          h.push(ligneHtml("action", a.noeud.cle, a.direct ? a.noeud.a : null, true, false, "",
-            a.noeud.a ? a.noeud.a.millesime : "", a.noeud.a ? a.noeud.a.origine : ""));
-          a.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
-        });
-        p.taches.forEach(t => h.push(ligneHtml("tache", t.libelle, t, true, false, "")));
-      }
-      h.push("</div>");
+    const liste = parPorteur.get(po);
+    let nP = 0, nA = 0, nT = 0;
+    liste.forEach(p => {
+      if (p.direct) nP++;
+      p.actions.forEach(a => { if (a.direct) nA++; nT += a.taches.length; });
+      nT += p.taches.length;
     });
+    const morceaux = [];
+    if (nP) morceaux.push(nP + " projet" + (nP > 1 ? "s" : ""));
+    if (nA) morceaux.push(nA + " action" + (nA > 1 ? "s" : ""));
+    if (nT) morceaux.push(nT + " tâche" + (nT > 1 ? "s" : ""));
+    h.push('<div class="bandeau"><span class="nom">' + echapper(po) + '</span><span class="info">'
+      + morceaux.join(" · ") + "</span></div>");
+    h.push('<table class="tab">' + entete + "<tbody>");
+    liste.forEach(p => {
+      const a = p.noeud.a;
+      const replie = replies.has(p.noeud.cle) && !pourImpression;
+      const repli = pourImpression ? "" : '<span class="repli" data-cle="' + echapper(p.noeud.cle) + '">'
+        + (replie ? "▸" : "▾") + "</span>";
+      h.push(ligneTableau({ classe: "pj", libelleHtml: repli + echapper(p.noeud.cle), o: p.direct ? a : null,
+        nature: a ? a.nature : "", millesime: a ? a.millesime : "", origine: a ? a.origine : "", avecService: true }));
+      if (replie) return;
+      p.actions.forEach(x => {
+        const aa = x.noeud.a;
+        h.push(ligneTableau({ classe: "ac", libelleHtml: echapper(x.noeud.cle), o: x.direct ? aa : null,
+          nature: aa ? aa.nature : "MEO", millesime: aa ? aa.millesime : "", origine: aa ? aa.origine : "", avecService: true }));
+        x.taches.forEach(t => h.push(ligneTableau({ classe: "ta", libelleHtml: echapper(t.libelle), o: t, avecService: true })));
+      });
+      p.taches.forEach(t => h.push(ligneTableau({ classe: "ta", libelleHtml: echapper(t.libelle), o: t, avecService: true })));
+    });
+    h.push("</tbody></table>");
   });
 
   if (etat.orphelins.length){
-    h.push('<div class="bloc-projet">');
-    h.push('<div class="ligne projet"><span class="repli vide">·</span><span class="titre">Sans projet identifié</span></div>');
+    h.push('<div class="bandeau"><span class="nom">Sans projet identifié</span><span class="info">'
+      + etat.orphelins.length + " ligne" + (etat.orphelins.length > 1 ? "s" : "") + "</span></div>");
+    h.push('<table class="tab plat">' + entete + "<tbody>");
     etat.orphelins.forEach(x => {
-      h.push(ligneHtml(x.type === "action" ? "action" : "tache", x.libelle, x.o, true, false, "",
-        x.type === "action" && x.o ? x.o.millesime : "", x.type === "action" && x.o ? x.o.origine : ""));
+      const act = x.type === "action";
+      h.push(ligneTableau({ classe: act ? "" : "", libelleHtml: echapper(x.libelle), o: x.o,
+        nature: act && x.o ? x.o.nature : "", millesime: act && x.o ? x.o.millesime : "",
+        origine: act && x.o ? x.o.origine : "", avecService: true }));
     });
-    h.push("</div>");
+    h.push("</tbody></table>");
   }
 
-  h.push(sectionAnnexe("MEC 2023", etat.mec, true));
-  h.push(sectionAnnexe("PAPRIPACT", etat.papripact, false));
-
+  h.push(annexesHtml(etat.mec, etat.papripact));
   return h.join("");
 }
 
@@ -1317,7 +1391,9 @@ function remplirListe(sel, valeurs, affichage){
 
 function majProjets(etat){
   const liste = etat.projetsDisponibles.slice().sort((a, b) => a.localeCompare(b, "fr"));
-  remplirListe(document.getElementById("selProjet"), liste);
+  const dl = document.getElementById("listeProjets");
+  const html = liste.map(n => '<option value="' + echapper(n) + '"></option>').join("");
+  if (dl.innerHTML !== html) dl.innerHTML = html;
 }
 
 function brancherReplis(){
@@ -1781,10 +1857,13 @@ function construireEtatSponsor(sponsor){
 
   /* MEC 2023 et PAPRIPACT : masqués quand une nature PEPS / AV est choisie.
      Une ligne rattachée à plusieurs groupements n'apparaît qu'une fois sans filtre groupement. */
-  const vus = new Set();
-  const annexes = f.nature ? [] : annexesDuSponsor.filter(p => {
+  const annexesFiltrees = f.nature ? [] : annexesDuSponsor.filter(p => {
     if (!garderStatut(p.a) || (f.texte && !norm(p.a.libelle).includes(f.texte))) return false;
     if (f.grpSponsor && (p.grpLibelle || SANS_GROUPEMENT) !== f.grpSponsor) return false;
+    return true;
+  });
+  const vus = new Set();
+  const annexes = annexesFiltrees.filter(p => {
     const cle = p.famille + "|" + p.a.id;
     if (vus.has(cle)) return false;
     vus.add(cle);
@@ -1851,6 +1930,22 @@ function construireEtatSponsor(sponsor){
     });
   }
 
+  /* Synthèse par groupement : PEPS, AV, MEC 2023, PAPRIPACT.
+     Une ligne MEC / PAPRIPACT rattachée à plusieurs groupements compte dans chacun. */
+  const parGrp = new Map();
+  const ligneGrp = p => {
+    const cle = p.grpLibelle || SANS_GROUPEMENT;
+    if (!parGrp.has(cle)) parGrp.set(cle, { libelle: cle, code: p.grpCode, peps: 0, av: 0, mec: 0, pap: 0 });
+    return parGrp.get(cle);
+  };
+  projets.forEach(p => { const r = ligneGrp(p); if (p.a.nature === "PEPS") r.peps++; else if (p.a.nature === "AV") r.av++; });
+  annexesFiltrees.forEach(p => { const r = ligneGrp(p); if (p.famille === "MEC 2023") r.mec++; else r.pap++; });
+  const synthese = Array.from(parGrp.values()).sort((x, y) => {
+    if (x.libelle === SANS_GROUPEMENT) return 1;
+    if (y.libelle === SANS_GROUPEMENT) return -1;
+    return rangTete(x.libelle) - rangTete(y.libelle) || x.libelle.localeCompare(y.libelle, "fr");
+  });
+
   const titre = tous ? "Tous les sponsors CODIR" : sponsor;
   const morceaux = [tous ? "tous" : sponsor];
   if (f.grpSponsor) morceaux.push(f.grpSponsor);
@@ -1858,29 +1953,47 @@ function construireEtatSponsor(sponsor){
 
   return {
     sponsor, tous, titre, nomCourt: morceaux.join(" "),
-    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte, mec, papripact,
+    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte, mec, papripact, synthese,
     sousDirections: Array.from(sousDirections).sort((a, b) => a.localeCompare(b, "fr")),
     codesGroupements: Array.from(codesGroupements).sort((a, b) => a.localeCompare(b, "fr"))
   };
 }
 
 /* =========================================================
-   En-tête personnalisable (sponsor CODIR)
+   En-tête personnalisable (sponsor CODIR et groupement)
    ========================================================= */
-const COMPTEURS_SYSTEME = {
-  projets:  "projets PEPS / AV",
-  pepsav:   "dont PEPS / AV",
-  moyenne:  "avancement moyen",
-  depasses: "échéance dépassée",
-  mec:      "MEC 2023",
-  pap:      "PAPRIPACT"
-};
-const COMPTEURS_DEFAUT = Object.keys(COMPTEURS_SYSTEME).map(cle => ({ type: "sys", cle, visible: true }));
+const BLOCS = [["volume", "Volume"], ["p2a", "P2A"], ["avancement", "Avancement"],
+  ["anciennete", "Ancienneté"], ["echeances", "Échéances"]];
 
-const POPULATIONS = [
+const COMPTEURS_SYSTEME = {
+  sponsor: {
+    projets:  { libelle: "projets PEPS / AV", bloc: "volume" },
+    pepsav:   { libelle: "répartition PEPS / AV", bloc: "volume" },
+    mec:      { libelle: "MEC 2023", bloc: "volume" },
+    pap:      { libelle: "PAPRIPACT", bloc: "volume" },
+    p2a:      { libelle: "inscrits au P2A", bloc: "p2a" },
+    moyenne:  { libelle: "avancement moyen", bloc: "avancement" },
+    depasses: { libelle: "échéances dépassées", bloc: "echeances" }
+  },
+  groupement: {
+    projets:  { libelle: "projets PEPS / AV", bloc: "volume" },
+    pepsav:   { libelle: "répartition PEPS / AV", bloc: "volume" },
+    actions:  { libelle: "actions MEO", bloc: "volume" },
+    taches:   { libelle: "tâches", bloc: "volume" },
+    mec:      { libelle: "MEC 2023", bloc: "volume" },
+    pap:      { libelle: "PAPRIPACT", bloc: "volume" },
+    p2a:      { libelle: "inscrits au P2A", bloc: "p2a" },
+    moyenne:  { libelle: "avancement moyen des projets", bloc: "avancement" },
+    depasses: { libelle: "échéances dépassées (tous niveaux)", bloc: "echeances" }
+  }
+};
+
+const POPULATIONS_SPONSOR = [
   ["projets", "Projets PEPS + AV"], ["PEPS", "Projets PEPS"], ["AV", "Actions AV"],
-  ["mec", "MEC 2023"], ["pap", "PAPRIPACT"], ["tout", "Tout (projets, MEC, PAPRIPACT)"]
+  ["mec", "MEC 2023"], ["pap", "PAPRIPACT"], ["tout", "Tout"]
 ];
+const POPULATIONS_GROUPEMENT = POPULATIONS_SPONSOR.slice(0, 3)
+  .concat([["actions", "Actions MEO"], ["taches", "Tâches"]], POPULATIONS_SPONSOR.slice(3));
 const OPERATEURS_AGE = [["", "—"], [">", "plus de"], [">=", "au moins"], ["<", "moins de"], ["<=", "au plus"], ["=", "exactement"]];
 const TRANCHES = [
   ["", "—"], ["aengager", "A engager (0 %)"], ["t1", "1 – 25 %"], ["t2", "26 – 75 %"], ["t3", "76 – 99 %"],
@@ -1895,15 +2008,39 @@ function nouveauCompteur(){
     ageOp: "", ageAns: 3, tranche: "", echeance: "", echeanceMois: 3, origine: "", affichage: "nombre" };
 }
 
-function compteursConfig(){
-  const c = reglages.compteursSponsor;
-  return Array.isArray(c) && c.length ? c : COMPTEURS_DEFAUT;
+function cleConfig(v){ return v === "sponsor" ? "compteursSponsor" : "compteursGroupement"; }
+
+function compteursDefaut(v){
+  return Object.keys(COMPTEURS_SYSTEME[v]).map(cle => ({ type: "sys", cle, visible: true }));
 }
 
-/* Année d'inscription tirée de l'origine (CASDIS_12_2025, Ajout_2026…) : la plus ancienne. */
-function anneeOrigine(origine){
-  const annees = (String(origine || "").match(/(19|20)\d{2}/g) || []).map(Number);
-  return annees.length ? Math.min(...annees) : null;
+/* Configuration enregistrée, complétée des compteurs standards qui n'y figurent pas encore. */
+function compteursConfig(v){
+  const c = reglages[cleConfig(v)];
+  if (!Array.isArray(c) || !c.length) return compteursDefaut(v);
+  const sys = COMPTEURS_SYSTEME[v];
+  const res = c.filter(x => x.type !== "sys" || sys[x.cle]);
+  Object.keys(sys).forEach(cle => {
+    if (!res.some(x => x.type === "sys" && x.cle === cle)) res.push({ type: "sys", cle, visible: true });
+  });
+  return res;
+}
+
+/* Année du projet tirée de son identifiant (2023_01_P, 2026_18_A…) : les 4 premiers chiffres. */
+function anneeProjet(id){
+  const m = String(id || "").trim().match(/^((?:19|20)\d{2})(?!\d)/);
+  return m ? Number(m[1]) : null;
+}
+
+/* Année d'une ligne : identifiant du projet ; pour une action ou une tâche, celui de l'action
+   s'il porte une année, sinon celui de son projet. MEC 2023 et PAPRIPACT : sans objet. */
+function anneeLigne(it){
+  if (it.famille) return null;
+  if (it.niveau === "action" || it.niveau === "tache"){
+    const an = anneeProjet(it.a.cleAction);
+    return an !== null ? an : anneeProjet(it.a.cleProjet);
+  }
+  return anneeProjet(it.a.cleProjet);
 }
 
 function dansTranche(a, t){
@@ -1929,33 +2066,56 @@ function compare(v, op, n){
   }
 }
 
-function populationCompteur(etat, pop){
-  const projets = etat.groupes.reduce((acc, g) => acc.concat(g.projets), []);
-  switch (pop){
-    case "PEPS": return projets.filter(p => p.a.nature === "PEPS");
-    case "AV":   return projets.filter(p => p.a.nature === "AV");
-    case "mec":  return etat.mec;
-    case "pap":  return etat.papripact;
-    case "tout": return projets.concat(etat.mec, etat.papripact);
-    default:     return projets;
-  }
+function estDepasse(a){
+  const j = new Date(); j.setHours(0, 0, 0, 0);
+  return !!a.echeanceDate && a.echeanceDate < j && a.pourcent < 100 && !a.interrompu;
 }
 
-function valeurCompteurPerso(etat, c){
-  const pop = populationCompteur(etat, c.population);
+/* Populations d'un état, sous forme d'éléments { a, niveau, famille, depasse }. */
+function populations(etat, v){
+  const el = (a, niveau, famille) => ({ a, niveau, famille, depasse: estDepasse(a) });
+  const pops = { projets: [], actions: [], taches: [], mec: [], pap: [] };
+  if (v === "sponsor"){
+    etat.groupes.forEach(g => g.projets.forEach(p => pops.projets.push(el(p.a, "projet"))));
+    pops.mec = etat.mec.map(p => el(p.a, "annexe", "MEC 2023"));
+    pops.pap = etat.papripact.map(p => el(p.a, "annexe", "PAPRIPACT"));
+  } else {
+    etat.projets.forEach(p => {
+      if (p.direct && p.noeud.a) pops.projets.push(el(p.noeud.a, "projet"));
+      p.actions.forEach(x => {
+        if (x.direct && x.noeud.a) pops.actions.push(el(x.noeud.a, "action"));
+        x.taches.forEach(t => pops.taches.push(el(t, "tache")));
+      });
+      p.taches.forEach(t => pops.taches.push(el(t, "tache")));
+    });
+    etat.orphelins.forEach(x => {
+      if (x.type === "action") pops.actions.push(el(x.o, "action"));
+      else pops.taches.push(el(x.o, "tache"));
+    });
+    pops.mec = etat.mec.map(o => el(o, "annexe", "MEC 2023"));
+    pops.pap = etat.papripact.map(o => el(o, "annexe", "PAPRIPACT"));
+  }
+  pops.PEPS = pops.projets.filter(x => x.a.nature === "PEPS");
+  pops.AV = pops.projets.filter(x => x.a.nature === "AV");
+  pops.tout = pops.projets.concat(pops.actions, pops.taches, pops.mec, pops.pap);
+  return pops;
+}
+
+function valeurCompteurPerso(pops, c){
+  const pop = pops[c.population] || pops.projets;
   const anneeCourante = new Date().getFullYear();
   const aujourdHui = new Date(); aujourdHui.setHours(0, 0, 0, 0);
   const limite = new Date(aujourdHui); limite.setMonth(limite.getMonth() + (Number(c.echeanceMois) || 0));
-  const n = pop.filter(p => {
-    const a = p.a;
+  const n = pop.filter(it => {
+    const a = it.a;
     if (c.ageOp){
-      const an = anneeOrigine(a.origine);
+      const an = anneeLigne(it);
       if (an === null || !compare(anneeCourante - an, c.ageOp, Number(c.ageAns) || 0)) return false;
     }
     if (c.tranche && !dansTranche(a, c.tranche)) return false;
     if (c.origine === "casdis" && !/casdis/i.test(a.origine || "")) return false;
     if (c.origine === "ajout" && !/ajout/i.test(a.origine || "")) return false;
-    if (c.echeance === "depassee" && !p.depasse) return false;
+    if (c.echeance === "depassee" && !it.depasse) return false;
     if (c.echeance === "sans" && a.echeanceDate) return false;
     if (c.echeance === "proche"){
       if (!a.echeanceDate || a.echeanceDate < aujourdHui || a.echeanceDate > limite
@@ -1963,57 +2123,155 @@ function valeurCompteurPerso(etat, c){
     }
     return true;
   }).length;
-  const pct = pop.length ? Math.round(n / pop.length * 100) : 0;
-  return { n, pct, base: pop.length };
+  return { n, pct: pop.length ? Math.round(n / pop.length * 100) : 0 };
 }
 
-/* Valeurs de l'en-tête : liste { libelle, texte, nombre, pourcent } des compteurs visibles. */
-function valeursEntete(etat){
-  const c = etat.compte;
-  return compteursConfig().filter(x => x.visible !== false).map(x => {
+function blocPerso(c){
+  if (c.ageOp) return "anciennete";
+  if (c.echeance) return "echeances";
+  if (c.tranche) return "avancement";
+  return "volume";
+}
+
+/* Valeurs de l'en-tête : { bloc, libelle, court, texte, nombre, pourcent, brut, extra, alerte }. */
+function valeursEntete(etat, v){
+  v = v || "sponsor";
+  const pops = populations(etat, v);
+  const sys = COMPTEURS_SYSTEME[v];
+  const moyenne = pops.projets.length
+    ? Math.round(pops.projets.reduce((s, x) => s + x.a.pourcent, 0) / pops.projets.length) : 0;
+  const depasses = (v === "sponsor" ? pops.projets : pops.projets.concat(pops.actions, pops.taches))
+    .filter(x => x.depasse).length;
+  const millesimes = new Map();
+  pops.projets.forEach(x => { if (x.a.millesime) millesimes.set(x.a.millesime, (millesimes.get(x.a.millesime) || 0) + 1); });
+  const nbP2A = Array.from(millesimes.values()).reduce((s, n) => s + n, 0);
+  const detailP2A = Array.from(millesimes.keys()).sort().map(m => m + " : " + millesimes.get(m)).join(" · ");
+
+  return compteursConfig(v).filter(x => x.visible !== false).map(x => {
     if (x.type === "sys"){
-      const libelle = COMPTEURS_SYSTEME[x.cle];
+      const d = sys[x.cle];
+      if (!d) return null;
+      const nb = (n, court) => ({ bloc: d.bloc, libelle: d.libelle, court, texte: String(n), nombre: n, pourcent: null });
       switch (x.cle){
-        case "projets":  return { libelle, texte: String(c.projets), nombre: c.projets, pourcent: null };
-        case "pepsav":   return { libelle, texte: c.peps + " / " + c.av, nombre: null, pourcent: null, brut: c.peps + " / " + c.av };
-        case "moyenne":  return { libelle, texte: c.moyenne + " %", nombre: null, pourcent: c.moyenne };
-        case "depasses": return { libelle, texte: String(c.depasses), nombre: c.depasses, pourcent: null };
-        case "mec":      return { libelle, texte: String(etat.mec.length), nombre: etat.mec.length, pourcent: null };
-        case "pap":      return { libelle, texte: String(etat.papripact.length), nombre: etat.papripact.length, pourcent: null };
-        default:         return null;
+        case "projets": return nb(pops.projets.length, "projets");
+        case "pepsav": {
+          const t = pops.PEPS.length + " PEPS / " + pops.AV.length + " AV";
+          return { bloc: d.bloc, libelle: d.libelle, court: "", texte: t, nombre: null, pourcent: null, brut: t };
+        }
+        case "actions": return nb(pops.actions.length, "actions MEO");
+        case "taches":  return nb(pops.taches.length, "tâches");
+        case "mec":     return nb(pops.mec.length, "MEC 2023");
+        case "pap":     return nb(pops.pap.length, "PAPRIPACT");
+        case "p2a":     return Object.assign(nb(nbP2A, "inscrits au P2A"), { extra: detailP2A });
+        case "moyenne": return { bloc: d.bloc, libelle: d.libelle, court: v === "sponsor" ? "moyen" : "moyen des projets",
+          texte: moyenne + " %", nombre: null, pourcent: moyenne };
+        case "depasses": return Object.assign(nb(depasses, v === "sponsor" ? "dépassées" : "dépassées, tous niveaux"),
+          { alerte: depasses > 0 });
+        default: return null;
       }
     }
-    const v = valeurCompteurPerso(etat, x);
-    const texteV = x.affichage === "pourcent" ? v.pct + " %"
-      : x.affichage === "les2" ? v.n + '<span class="p">· ' + v.pct + " %</span>" : String(v.n);
-    return { libelle: x.libelle || "Compteur", texte: texteV, html: true,
-      nombre: x.affichage === "pourcent" ? null : v.n, pourcent: x.affichage === "nombre" ? null : v.pct };
+    const r = valeurCompteurPerso(pops, x);
+    const t = x.affichage === "pourcent" ? r.pct + " %" : x.affichage === "les2" ? r.n + " · " + r.pct + " %" : String(r.n);
+    return { bloc: blocPerso(x), libelle: x.libelle || "Compteur", court: x.libelle || "Compteur", texte: t,
+      nombre: x.affichage === "pourcent" ? null : r.n, pourcent: x.affichage === "nombre" ? null : r.pct,
+      alerte: x.echeance === "depassee" && r.n > 0 };
   }).filter(Boolean);
 }
 
-function ligneProjetSeulHtml(p, avecSponsor){
-  const a = p.a;
-  const h = ['<div class="ligne projet-seul">'];
-  h.push('<span class="titre">' + echapper(a.cleProjet) + "</span>");
-  if (a.nature) h.push('<span class="tag">' + echapper(a.nature) + "</span>");
-  if (a.millesime) h.push('<span class="tag" title="Millésime P2A">' + echapper(a.millesime) + "</span>");
-  if (a.origine) h.push(pastilleOrigine(a.origine));
-  if (avecSponsor && p.sponsor) h.push('<span class="info">' + echapper(p.sponsor) + "</span>");
-  if (a.porteur) h.push('<span class="info">' + echapper(a.porteur) + "</span>");
-  if (a.echeance) h.push('<span class="info' + (p.depasse ? " depasse" : "") + '"'
-    + (p.depasse ? ' title="Échéance dépassée"' : "") + ">éch. " + echapper(a.echeance) + "</span>");
-  h.push(pastille(a));
+/* Blocs thématiques : la première valeur en grand, les suivantes en lignes. */
+function blocsHtml(etat, v){
+  const valeurs = valeursEntete(etat, v);
+  const blocs = BLOCS.map(([cle, titre]) => ({ titre, items: valeurs.filter(x => x.bloc === cle) }))
+    .filter(b => b.items.length);
+  if (!blocs.length) return "";
+  const h = ['<div class="blocs" style="grid-template-columns:repeat(' + blocs.length + ',minmax(0,1fr))">'];
+  blocs.forEach(b => {
+    const [premier, ...autres] = b.items;
+    h.push('<div class="bloc"><div class="t">' + echapper(b.titre) + "</div>");
+    h.push('<div class="n' + (premier.alerte ? " alerte" : "") + '">' + echapper(premier.texte) + "</div>");
+    if (premier.court) h.push('<div class="l">' + echapper(premier.court) + "</div>");
+    if (premier.extra) h.push('<div class="l">' + echapper(premier.extra) + "</div>");
+    autres.forEach(x => {
+      h.push('<div class="l">' + echapper(x.texte + (x.court ? " " + x.court : "")) + "</div>");
+      if (x.extra) h.push('<div class="l">' + echapper(x.extra) + "</div>");
+    });
+    h.push("</div>");
+  });
   h.push("</div>");
   return h.join("");
 }
 
-function etatSponsorHtml(etat){
-  const c = etat.compte;
-  const ef = etat.filtres;
-  const ordre = ["À engager", "En cours", "Terminé", "Interrompu"];
-  const couleurs = { "À engager": "#C0504D", "En cours": "#F79646", "Terminé": "#9BBB59", "Interrompu": "#4A4A4A" };
+/* =========================================================
+   Tableaux de détail communs
+   ========================================================= */
+function celluleEcheance(o){
+  if (!o || !o.echeance) return '<td class="c col-echeance"></td>';
+  return '<td class="c col-echeance' + (estDepasse(o) ? " ech-depasse" : "") + '"'
+    + (estDepasse(o) ? ' title="Échéance dépassée"' : "") + ">" + echapper(o.echeance) + "</td>";
+}
 
-  const h = ['<div class="entete-grp">'];
+/* Une ligne de tableau. opts : { classe, libelleHtml, o (null = ligne de contexte), nature, millesime,
+   origine, porteur, avecPorteur, avecService, categorie } */
+function ligneTableau(opts){
+  const o = opts.o;
+  const h = ['<tr class="' + (opts.classe || "") + (o ? "" : " contexte") + '">'];
+  h.push('<td class="lib">' + opts.libelleHtml + "</td>");
+  if (opts.categorie !== undefined) h.push('<td class="w-cat">' + echapper(opts.categorie) + "</td>");
+  else {
+    h.push('<td class="c col-nat">' + echapper(opts.nature || "") + "</td>");
+    h.push('<td class="c col-p2a">' + (opts.millesime
+      ? '<span class="pastille-p2a">' + echapper(opts.millesime) + "</span>" : "") + "</td>");
+    h.push('<td class="c col-origine">' + (opts.origine ? pastilleOrigine(opts.origine) : "") + "</td>");
+  }
+  if (opts.avecPorteur) h.push('<td class="c col-porteur">' + echapper(o ? o.porteur : "") + "</td>");
+  if (opts.avecService) h.push('<td class="c col-service">' + echapper(o ? o.service : "") + "</td>");
+  h.push(celluleEcheance(o));
+  h.push('<td class="c">' + (o ? pastille(o) : "") + "</td>");
+  h.push("</tr>");
+  return h.join("");
+}
+
+function enteteTableau(premiere, avecPorteur, avecService, annexe){
+  const h = ['<thead><tr><th>' + echapper(premiere) + "</th>"];
+  if (annexe) h.push('<th class="w-cat">Catégorie</th>');
+  else h.push('<th class="c w-nat col-nat">Nat.</th><th class="c w-p2a col-p2a">P2A</th><th class="c w-origine col-origine">Origine</th>');
+  if (avecPorteur) h.push('<th class="c w-porteur col-porteur">Porteur</th>');
+  if (avecService) h.push('<th class="c w-service col-service">Service</th>');
+  h.push('<th class="c w-echeance col-echeance">Échéance</th><th class="c w-avct">Avct</th></tr></thead>');
+  return h.join("");
+}
+
+/* Annexes MEC 2023 / PAPRIPACT : objets lus par lireAnnexe. */
+function annexesHtml(mec, pap){
+  if (!mec.length && !pap.length) return "";
+  const h = ['<div class="annexes"><div class="titre-partie">Annexes</div>'];
+  [["MEC 2023", mec], ["PAPRIPACT", pap]].forEach(([titre, lignes]) => {
+    if (!lignes.length) return;
+    h.push('<div class="bandeau"><span class="nom">' + titre + '</span><span class="info">' + lignes.length
+      + " ligne" + (lignes.length > 1 ? "s" : "") + "</span></div>");
+    h.push('<table class="tab plat">' + enteteTableau("Libellé", true, true, true) + "<tbody>");
+    lignes.forEach(o => h.push(ligneTableau({ libelleHtml: echapper(o.libelle), o, categorie: o.categorie || "",
+      avecPorteur: true, avecService: true })));
+    h.push("</tbody></table>");
+  });
+  h.push("</div>");
+  return h.join("");
+}
+
+function tableauSynthese(colonnes, lignes, total){
+  const h = ['<table class="tab plat"><thead><tr><th>' + echapper(colonnes[0]) + "</th>"];
+  colonnes.slice(1).forEach(c => h.push('<th class="c w-nb">' + echapper(c) + "</th>"));
+  h.push("</tr></thead><tbody>");
+  lignes.forEach(l => h.push("<tr><td>" + echapper(l[0]) + "</td>"
+    + l.slice(1).map(n => '<td class="c">' + n + "</td>").join("") + "</tr>"));
+  h.push('<tr class="tot"><td>Total</td>' + total.map(n => '<td class="c">' + n + "</td>").join("") + "</tr>");
+  h.push("</tbody></table>");
+  return h.join("");
+}
+
+function etatSponsorHtml(etat){
+  const ef = etat.filtres;
+  const h = ['<div class="synthese"><div class="entete-grp">'];
   h.push("<h2>" + (etat.tous ? "" : "Sponsor CODIR : ") + echapper(etat.titre) + "</h2>");
   const meta = [];
   if (etat.sousDirections.length) meta.push("Sous-direction : <b>" + echapper(etat.sousDirections.join(", ")) + "</b>");
@@ -2023,50 +2281,41 @@ function etatSponsorHtml(etat){
   meta.push("Périmètre : <b>" + (ef.nature ? "projets " + ef.nature + " uniquement"
     : "projets PEPS et AV, MEC 2023, PAPRIPACT") + "</b>");
   if (ef.origine) meta.push("Origine : <b>" + echapper(libelleFiltreOrigine(ef.origine)) + "</b>");
-  h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
-  h.push("</div>");
+  h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div></div>");
 
   if (!D.metaOk){
     h.push('<div class="avertissement">Métadonnées du document illisibles : les colonnes de référence peuvent s\'afficher sous forme de numéro de ligne.</div>');
   }
 
-  const valeurs = valeursEntete(etat);
-  if (valeurs.length){
-    h.push('<div class="compteurs">');
-    valeurs.forEach(v => h.push('<div class="compteur"><div class="n">' + (v.html ? v.texte : echapper(v.texte))
-      + '</div><div class="l">' + echapper(v.libelle) + "</div></div>"));
-    h.push("</div>");
-  }
-
-  if (!c.projets && !etat.mec.length && !etat.papripact.length){
-    h.push('<div class="vide-etat">Aucune ligne ne correspond à la sélection.</div>');
+  const vide = !etat.compte.projets && !etat.mec.length && !etat.papripact.length;
+  if (vide){
+    h.push('<div class="vide-etat">Aucune ligne ne correspond à la sélection.</div></div>');
     return h.join("");
   }
-  if (c.projets){
-    h.push('<div class="repartition">');
-    ordre.forEach(s => {
-      const n = c.statuts[s] || 0;
-      if (n) h.push('<div style="width:' + (n / c.projets * 100) + "%;background:" + couleurs[s] + '"></div>');
-    });
-    h.push("</div>");
-    h.push('<div class="legende">');
-    ordre.forEach(s => {
-      const n = c.statuts[s] || 0;
-      if (n) h.push('<span><i class="puce" style="background:' + couleurs[s] + '"></i>' + s + " : " + n + "</span>");
-    });
-    h.push("</div>");
-  }
 
+  h.push(blocsHtml(etat, "sponsor"));
+  const lignes = etat.synthese.map(r => [grpAvecCode(r.libelle, r.code), r.peps, r.av, r.mec, r.pap]);
+  const tot = [0, 0];
+  etat.synthese.forEach(r => { tot[0] += r.peps; tot[1] += r.av; });
+  h.push(tableauSynthese(["Groupement", "PEPS", "AV", "MEC 2023", "PAPRIPACT"], lignes,
+    [tot[0], tot[1], etat.mec.length, etat.papripact.length]));
+  h.push("</div>");
+
+  if (etat.groupes.length) h.push('<div class="titre-partie">Détail des projets</div>');
   etat.groupes.forEach(g => {
-    h.push('<div class="groupe-porteur">' + echapper(g.libelle)
-      + (g.code && g.code !== g.libelle ? " (" + echapper(g.code) + ")" : "")
-      + '<span class="nb">' + g.projets.length + " projet" + (g.projets.length > 1 ? "s" : "") + "</span></div>");
-    h.push('<div class="bloc-projet">');
-    g.projets.forEach(p => h.push(ligneProjetSeulHtml(p, etat.tous)));
-    h.push("</div>");
+    const n = g.projets.length;
+    const moy = n ? Math.round(g.projets.reduce((s, p) => s + p.a.pourcent, 0) / n) : 0;
+    const sponsors = etat.tous ? Array.from(new Set(g.projets.map(p => p.sponsor).filter(Boolean))) : [];
+    h.push('<div class="bandeau"><span class="nom">' + echapper(grpAvecCode(g.libelle, g.code)) + '</span><span class="info">'
+      + n + " projet" + (n > 1 ? "s" : "") + " · " + moy + " % moyen"
+      + (sponsors.length ? " · Sponsor : " + echapper(sponsors.join(", ")) : "") + "</span></div>");
+    h.push('<table class="tab plat">' + enteteTableau("Projet", true, false, false) + "<tbody>");
+    g.projets.forEach(p => h.push(ligneTableau({ libelleHtml: echapper(p.a.cleProjet), o: p.a,
+      nature: p.a.nature, millesime: p.a.millesime, origine: p.a.origine, avecPorteur: true })));
+    h.push("</tbody></table>");
   });
-  h.push(sectionAnnexe("MEC 2023", etat.mec.map(p => p.a), true));
-  h.push(sectionAnnexe("PAPRIPACT", etat.papripact.map(p => p.a), false));
+
+  h.push(annexesHtml(etat.mec.map(p => p.a), etat.papripact.map(p => p.a)));
   return h.join("");
 }
 
@@ -2180,7 +2429,7 @@ const COLONNES_INDICATEURS = [
 function ajouterFeuilleIndicateurs(wb, etats, prises){
   prises.add("Indicateurs");
   const ws = preparerFeuille(wb, "Indicateurs", COLONNES_INDICATEURS, false);
-  etats.forEach(etat => valeursEntete(etat).forEach(v => {
+  etats.forEach(etat => valeursEntete(etat, "sponsor").forEach(v => {
     const r = ws.addRow([etat.titre, v.libelle,
       v.nombre !== null ? v.nombre : (v.brut || null),
       v.pourcent !== null ? v.pourcent / 100 : null]);
@@ -2241,13 +2490,17 @@ function optionsHtml(liste, valeur){
 
 function dessinerCompteurs(){
   const zone = document.getElementById("listeCompteurs");
+  const sys = COMPTEURS_SYSTEME[vue];
+  const pops = vue === "sponsor" ? POPULATIONS_SPONSOR : POPULATIONS_GROUPEMENT;
   const dernier = brouillonCompteurs.length - 1;
   zone.innerHTML = brouillonCompteurs.map((c, i) => {
     const h = ['<div class="cpt' + (c.visible === false ? " masque" : "") + '" data-i="' + i + '">'];
     h.push('<div class="cpt-tete">');
     h.push('<input type="checkbox" data-k="visible" title="Afficher"' + (c.visible === false ? "" : " checked") + ">");
     if (c.type === "sys"){
-      h.push('<span class="nom">' + echapper(COMPTEURS_SYSTEME[c.cle] || c.cle) + '</span><span class="sys">compteur standard</span>');
+      const d = sys[c.cle] || { libelle: c.cle, bloc: "" };
+      const bloc = (BLOCS.find(b => b[0] === d.bloc) || ["", ""])[1];
+      h.push('<span class="nom">' + echapper(d.libelle) + '</span><span class="sys">standard · bloc ' + echapper(bloc) + "</span>");
     } else {
       h.push('<input type="text" data-k="libelle" value="' + echapper(c.libelle) + '" placeholder="Libellé affiché">');
     }
@@ -2256,8 +2509,9 @@ function dessinerCompteurs(){
     if (c.type !== "sys") h.push('<button class="secondaire mini" data-act="suppr" title="Supprimer">✕</button>');
     h.push("</div>");
     if (c.type !== "sys"){
+      const bloc = (BLOCS.find(b => b[0] === blocPerso(c)) || ["", ""])[1];
       h.push('<div class="cpt-corps">');
-      h.push('<label class="champ"><span>Population</span><select data-k="population">' + optionsHtml(POPULATIONS, c.population) + "</select></label>");
+      h.push('<label class="champ"><span>Population</span><select data-k="population">' + optionsHtml(pops, c.population) + "</select></label>");
       h.push('<label class="champ"><span>Ancienneté</span><div style="display:flex;gap:4px">'
         + '<select data-k="ageOp">' + optionsHtml(OPERATEURS_AGE, c.ageOp) + "</select>"
         + '<input type="number" min="0" step="1" data-k="ageAns" value="' + (Number(c.ageAns) || 0) + '"'
@@ -2270,6 +2524,7 @@ function dessinerCompteurs(){
         + "</div></label>");
       h.push('<label class="champ"><span>Origine</span><select data-k="origine">' + optionsHtml(ORIGINES_CPT, c.origine) + "</select></label>");
       h.push('<label class="champ"><span>Affichage</span><select data-k="affichage">' + optionsHtml(AFFICHAGES, c.affichage) + "</select></label>");
+      h.push('<div class="aide" style="align-self:flex-end">Bloc : ' + echapper(bloc) + "</div>");
       h.push("</div>");
     }
     h.push("</div>");
@@ -2278,7 +2533,9 @@ function dessinerCompteurs(){
 }
 
 function ouvrirEntete(){
-  brouillonCompteurs = JSON.parse(JSON.stringify(compteursConfig()));
+  brouillonCompteurs = JSON.parse(JSON.stringify(compteursConfig(vue)));
+  document.getElementById("titreEntete").textContent = "En-tête de l'édition par "
+    + (vue === "sponsor" ? "sponsor CODIR" : "groupement");
   dessinerCompteurs();
   document.getElementById("panneauEntete").classList.add("ouvert");
 }
@@ -2293,7 +2550,7 @@ function brancherEntete(){
     dessinerCompteurs();
   });
   document.getElementById("btnDefautCompteurs").addEventListener("click", () => {
-    brouillonCompteurs = JSON.parse(JSON.stringify(COMPTEURS_DEFAUT));
+    brouillonCompteurs = compteursDefaut(vue);
     dessinerCompteurs();
   });
   /* Saisie : mise à jour du brouillon ; redessin seulement quand la forme du panneau change. */
@@ -2303,7 +2560,7 @@ function brancherEntete(){
     const c = brouillonCompteurs[Number(bloc.getAttribute("data-i"))];
     c[k] = e.target.type === "checkbox" ? e.target.checked
       : e.target.type === "number" ? Number(e.target.value) : e.target.value;
-    if (redessiner && ["visible", "ageOp", "echeance"].includes(k)) dessinerCompteurs();
+    if (redessiner && ["visible", "ageOp", "echeance", "tranche"].includes(k)) dessinerCompteurs();
   };
   liste.addEventListener("input", e => majChamp(e, false));
   liste.addEventListener("change", e => majChamp(e, true));
@@ -2317,10 +2574,14 @@ function brancherEntete(){
     dessinerCompteurs();
   });
   document.getElementById("btnEnregistrerEntete").addEventListener("click", async () => {
-    reglages = Object.assign({}, reglages, { compteursSponsor: brouillonCompteurs });
+    reglages = Object.assign({}, reglages, { [cleConfig(vue)]: brouillonCompteurs });
     panneau.classList.remove("ouvert");
     try { await grist.widgetApi.setOptions(reglages); } catch (e){ /* options indisponibles */ }
     afficher();
+  });
+  /* Colonnes imprimées : masquage par classe sur le corps de page. */
+  document.querySelectorAll("#choixColonnes input[data-col]").forEach(cb => {
+    cb.addEventListener("change", () => document.body.classList.toggle("sans-col-" + cb.getAttribute("data-col"), !cb.checked));
   });
 }
 
