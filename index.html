@@ -153,7 +153,8 @@
   .tab .pastille-p2a,.tab .pastille-origine{margin-left:0;}
   .tab .repli{display:inline-block;margin-right:4px;}
   .ech-depasse{color:#C0504D;font-weight:bold;}
-  .w-nat{width:46px;} .w-p2a{width:54px;} .w-origine{width:104px;} .w-porteur{width:112px;}
+  .w-nat{width:46px;} .w-p2a{width:84px;} .w-origine{width:124px;}
+  .tab td.col-p2a,.tab td.col-origine{overflow:visible;white-space:nowrap;} .w-porteur{width:112px;}
   .w-service{width:84px;} .w-echeance{width:76px;} .w-avct{width:80px;} .w-cat{width:130px;}
   .w-nb{width:74px;}
   .bandeau{display:flex;align-items:baseline;gap:10px;background:var(--bleu-clair);border-left:4px solid var(--liseret);
@@ -1968,12 +1969,12 @@ const BLOCS = [["volume", "Volume"], ["p2a", "P2A"], ["avancement", "Avancement"
 const COMPTEURS_SYSTEME = {
   sponsor: {
     projets:  { libelle: "projets PEPS / AV", bloc: "volume" },
-    pepsav:   { libelle: "répartition PEPS / AV", bloc: "volume" },
+    pepsav:   { libelle: "dont PEPS / AV", bloc: "volume" },
+    moyenne:  { libelle: "avancement moyen", bloc: "avancement" },
+    depasses: { libelle: "échéances dépassées", bloc: "echeances" },
     mec:      { libelle: "MEC 2023", bloc: "volume" },
     pap:      { libelle: "PAPRIPACT", bloc: "volume" },
-    p2a:      { libelle: "inscrits au P2A", bloc: "p2a" },
-    moyenne:  { libelle: "avancement moyen", bloc: "avancement" },
-    depasses: { libelle: "échéances dépassées", bloc: "echeances" }
+    p2a:      { libelle: "inscrits au P2A", bloc: "p2a" }
   },
   groupement: {
     projets:  { libelle: "projets PEPS / AV", bloc: "volume" },
@@ -2156,7 +2157,8 @@ function valeursEntete(etat, v){
         case "projets": return nb(pops.projets.length, "projets");
         case "pepsav": {
           const t = pops.PEPS.length + " PEPS / " + pops.AV.length + " AV";
-          return { bloc: d.bloc, libelle: d.libelle, court: "", texte: t, nombre: null, pourcent: null, brut: t };
+          return { bloc: d.bloc, libelle: d.libelle, court: "", texte: t, nombre: null, pourcent: null, brut: t,
+            compact: pops.PEPS.length + " / " + pops.AV.length };
         }
         case "actions": return nb(pops.actions.length, "actions MEO");
         case "taches":  return nb(pops.taches.length, "tâches");
@@ -2198,6 +2200,35 @@ function blocsHtml(etat, v){
     h.push("</div>");
   });
   h.push("</div>");
+  return h.join("");
+}
+
+/* En-tête « compteurs » (édition sponsor) : une case par compteur, puis la répartition des statuts. */
+function compteursHtml(etat, v){
+  const valeurs = valeursEntete(etat, v);
+  const h = [];
+  if (valeurs.length){
+    h.push('<div class="compteurs">');
+    valeurs.forEach(x => h.push('<div class="compteur"><div class="n"' + (x.alerte ? ' style="color:#C0504D"' : "") + ">"
+      + echapper(x.compact || x.texte) + '</div><div class="l">' + echapper(x.libelle) + "</div></div>"));
+    h.push("</div>");
+  }
+  const c = etat.compte, total = c.projets;
+  if (total){
+    const ordre = ["À engager", "En cours", "Terminé", "Interrompu"];
+    const couleurs = { "À engager": "#C0504D", "En cours": "#F79646", "Terminé": "#9BBB59", "Interrompu": "#4A4A4A" };
+    h.push('<div class="repartition">');
+    ordre.forEach(st => {
+      const n = c.statuts[st] || 0;
+      if (n) h.push('<div style="width:' + (n / total * 100) + "%;background:" + couleurs[st] + '"></div>');
+    });
+    h.push('</div><div class="legende">');
+    ordre.forEach(st => {
+      const n = c.statuts[st] || 0;
+      if (n) h.push('<span><i class="puce" style="background:' + couleurs[st] + '"></i>' + st + " : " + n + "</span>");
+    });
+    h.push("</div>");
+  }
   return h.join("");
 }
 
@@ -2293,7 +2324,7 @@ function etatSponsorHtml(etat){
     return h.join("");
   }
 
-  h.push(blocsHtml(etat, "sponsor"));
+  h.push(compteursHtml(etat, "sponsor"));
   const lignes = etat.synthese.map(r => [grpAvecCode(r.libelle, r.code), r.peps, r.av, r.mec, r.pap]);
   const tot = [0, 0];
   etat.synthese.forEach(r => { tot[0] += r.peps; tot[1] += r.av; });
