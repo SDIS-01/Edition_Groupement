@@ -177,7 +177,16 @@
   body.sans-col-porteur .col-porteur, body.sans-col-service .col-service,
   body.sans-col-echeance .col-echeance{display:none;}
   #selProjet{width:280px;}
-  @page{size:A4 portrait;margin:14mm 12mm;}
+  /* Deux éditions : seul le bandeau garde un fond ; tableaux transparents. */
+  body .tab th{background:transparent;color:var(--bleu-fonce);font-weight:bold;
+    border-bottom:1px solid var(--liseret);}
+  body .tab td,
+  body .tab.plat tbody tr:nth-child(even) td,
+  body .tab tr.pj td,
+  body .tab tr.rub td,
+  body .tab tr.tot td,
+  body .tab tr.ins td{background:transparent;}
+    @page{size:A4 portrait;margin:14mm 12mm;}
   @media print{
     .barre,.reglages,.repli{display:none !important;}
     .contenu{padding:0;}
