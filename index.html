@@ -1360,7 +1360,7 @@ function etatHtml(etat, pourImpression){
         + (replie ? "▸" : "▾") + "</span>";
       h.push(ligneTableau({ classe: "pj", libelleHtml: repli + echapper(p.noeud.cle), o: p.direct ? a : null,
         nature: a ? a.nature : "", millesime: a ? a.millesime : "", origine: a ? a.origine : "", avecService: true }));
-      h.push(ligneInstances(p.noeud.cle));
+      h.push(ligneInstances(p.noeud.cle, 7));
       if (replie) return;
       p.actions.forEach(x => {
         const aa = x.noeud.a;
@@ -2331,7 +2331,9 @@ function indexInstances(){
 }
 
 /* Ligne « Instances : … » sous un projet, si la case est cochée et qu'il y a des passages. */
-function ligneInstances(cleProjet){
+/* nbCol : nombre exact de colonnes du tableau (un colspan plus grand crée des colonnes fantômes
+   qui rétrécissent le tableau). */
+function ligneInstances(cleProjet, nbCol){
   if (!document.getElementById("chkInstances").checked || !cleProjet) return "";
   const liste = indexInstances().get(cleProjet);
   if (!liste || !liste.length) return "";
@@ -2341,7 +2343,7 @@ function ligneInstances(cleProjet){
     if (x.date) return '<span class="' + (x.date < j ? "fait" : "fut") + '">' + nom + " " + echapper(x.dateTxt) + "</span>";
     return '<span class="prog">' + nom + (x.periode ? " " + echapper(x.periode) : "") + ", à programmer</span>";
   });
-  return '<tr class="ins"><td colspan="12"><span class="ic">Instances :</span>'
+  return '<tr class="ins"><td colspan="' + (nbCol || 7) + '"><span class="ic">Instances :</span>'
     + morceaux.join('<span class="sep">·</span>') + "</td></tr>";
 }
 
@@ -2453,7 +2455,7 @@ function etatSponsorHtml(etat){
     g.projets.forEach(p => {
       h.push(ligneTableau({ libelleHtml: echapper(p.a.cleProjet), o: p.a,
         nature: p.a.nature, millesime: p.a.millesime, origine: p.a.origine, avecPorteur: true }));
-      h.push(ligneInstances(p.a.cleProjet));
+      h.push(ligneInstances(p.a.cleProjet, 7));
     });
     h.push("</tbody></table>");
   });
