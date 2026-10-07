@@ -237,11 +237,13 @@
     </div>
     <div class="champ seul-sp">
       <span>Nature</span>
-      <select id="selNature">
-        <option value="">PEPS + AV</option>
-        <option value="PEPS">PEPS</option>
-        <option value="AV">AV</option>
-      </select>
+      <div class="cases" id="choixNatures">
+        <label><input type="checkbox" id="chkNatTout" checked> <b>Tout</b></label>
+        <label><input type="checkbox" data-nat="PEPS" checked> PEPS</label>
+        <label><input type="checkbox" data-nat="AV" checked> AV</label>
+        <label><input type="checkbox" data-nat="MEC 2023" checked> MEC 2023</label>
+        <label><input type="checkbox" data-nat="PAPRIPACT" checked> PAPRIPACT</label>
+      </div>
     </div>
     <div class="champ seul-grp">
       <span>Collaborateur</span>
@@ -1149,6 +1151,13 @@ function construireEtat(code, sansProjetSeul){
   };
 }
 
+/* Natures cochées en vue sponsor (PEPS, AV, MEC 2023, PAPRIPACT). */
+const NATURES_SPONSOR = ["PEPS", "AV", "MEC 2023", "PAPRIPACT"];
+function naturesCochees(){
+  return Array.from(document.querySelectorAll("#choixNatures input[data-nat]"))
+    .filter(cb => cb.checked).map(cb => cb.getAttribute("data-nat"));
+}
+
 function lireFiltres(){
   return {
     texte: norm(document.getElementById("recherche").value),
@@ -1160,7 +1169,7 @@ function lireFiltres(){
     termine: document.getElementById("chkTermine").checked,
     interrompu: document.getElementById("chkInterrompu").checked,
     grpSponsor: document.getElementById("selGrpSponsor").value,
-    nature: document.getElementById("selNature").value,
+    natures: naturesCochees(),
     origine: document.getElementById("selOrigine").value
   };
 }
@@ -1912,13 +1921,14 @@ function construireEtatSponsor(sponsor){
   const projets = duSponsor.filter(p =>
     garderStatut(p.a)
     && (!f.texte || norm(p.a.cleProjet).includes(f.texte))
-    && (!f.nature || p.a.nature === f.nature)
+    && f.natures.includes(p.a.nature)
     && garderOrigine(p.a.origine, f.origine)
     && (!f.grpSponsor || (p.grpLibelle || SANS_GROUPEMENT) === f.grpSponsor));
 
   /* MEC 2023 et PAPRIPACT : masqués quand une nature PEPS / AV est choisie.
      Une ligne rattachée à plusieurs groupements n'apparaît qu'une fois sans filtre groupement. */
-  const annexesFiltrees = f.nature ? [] : annexesDuSponsor.filter(p => {
+  const annexesFiltrees = annexesDuSponsor.filter(p => {
+    if (!f.natures.includes(p.famille)) return false;
     if (!garderStatut(p.a) || (f.texte && !norm(p.a.libelle).includes(f.texte))) return false;
     if (f.grpSponsor && (p.grpLibelle || SANS_GROUPEMENT) !== f.grpSponsor) return false;
     return true;
@@ -2010,7 +2020,7 @@ function construireEtatSponsor(sponsor){
   const titre = tous ? "Tous les sponsors CODIR" : sponsor;
   const morceaux = [tous ? "tous" : sponsor];
   if (f.grpSponsor) morceaux.push(f.grpSponsor);
-  if (f.nature) morceaux.push(f.nature);
+  if (f.natures.length < NATURES_SPONSOR.length) morceaux.push(f.natures.join(" "));
 
   return {
     sponsor, tous, titre, nomCourt: morceaux.join(" "),
@@ -2426,8 +2436,8 @@ function etatSponsorHtml(etat){
   if (etat.codesGroupements.length) meta.push("Groupements : <b>" + echapper(etat.codesGroupements.join(", ")) + "</b>");
   if (ef.grpSponsor) meta.push("Filtre groupement : <b>"
     + echapper(etat.affichageGroupements[ef.grpSponsor] || ef.grpSponsor) + "</b>");
-  meta.push("Périmètre : <b>" + (ef.nature ? "projets " + ef.nature + " uniquement"
-    : "projets PEPS et AV, MEC 2023, PAPRIPACT") + "</b>");
+  meta.push("Périmètre : <b>" + (ef.natures.length === NATURES_SPONSOR.length ? "tout (PEPS, AV, MEC 2023, PAPRIPACT)"
+    : ef.natures.length ? ef.natures.join(", ") : "aucune nature cochée") + "</b>");
   if (ef.origine) meta.push("Origine : <b>" + echapper(libelleFiltreOrigine(ef.origine)) + "</b>");
   h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div></div>");
 
@@ -2738,8 +2748,21 @@ function brancherEntete(){
   });
 }
 
+function brancherNatures(){
+  const tout = document.getElementById("chkNatTout");
+  const cases = Array.from(document.querySelectorAll("#choixNatures input[data-nat]"));
+  const majTout = () => {
+    const n = cases.filter(c => c.checked).length;
+    tout.checked = n === cases.length;
+    tout.indeterminate = n > 0 && n < cases.length;
+  };
+  tout.addEventListener("change", () => { cases.forEach(c => { c.checked = tout.checked; }); majTout(); afficher(); });
+  cases.forEach(c => c.addEventListener("change", () => { majTout(); afficher(); }));
+}
+
 function brancherInterface(){
   brancherEntete();
+  brancherNatures();
   document.getElementById("selGroupement").addEventListener("change", e => {
     groupementCourant = e.target.value;
     replies = new Set();
@@ -2752,7 +2775,7 @@ function brancherInterface(){
   document.getElementById("vueGroupement").addEventListener("click", () => changerVue("groupement"));
   document.getElementById("vueSponsor").addEventListener("click", () => changerVue("sponsor"));
   ["recherche", "selCollaborateur", "selService", "selModeCollab", "selProjet", "selPerimetre",
-   "chkTermine", "chkInterrompu", "selGrpSponsor", "selNature", "selOrigine", "chkInstances"].forEach(id => {
+   "chkTermine", "chkInterrompu", "selGrpSponsor", "selOrigine", "chkInstances"].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener(el.type === "search" ? "input" : "change", afficher);
   });
