@@ -181,7 +181,6 @@
     .tab thead{display:table-header-group;}
     .tab tr{break-inside:avoid;page-break-inside:avoid;}
     .bandeau,.titre-partie{break-after:avoid;page-break-after:avoid;}
-    .synthese{break-after:page;page-break-after:always;}
     .annexes{break-before:page;page-break-before:always;}
     .bloc,.tab th,.tab tr.pj td,.tab tr.tot td,.tab tr.rub td,.bandeau,.tab.plat tbody tr td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
@@ -1251,30 +1250,7 @@ function etatHtml(etat, pourImpression){
     return h.join("");
   }
 
-  /* Synthèse : blocs puis tableau par porteur (chaque ligne comptée chez son propre porteur). */
   h.push(blocsHtml(etat, "groupement"));
-  const pops = populations(etat, "groupement");
-  const parPorteurSynth = new Map();
-  const compterChez = (it, k) => {
-    const po = txt(it.a.porteur) || SANS_PORTEUR;
-    if (!parPorteurSynth.has(po)) parPorteurSynth.set(po, { peps: 0, av: 0, actions: 0, taches: 0, mec: 0, pap: 0 });
-    parPorteurSynth.get(po)[k]++;
-  };
-  pops.PEPS.forEach(it => compterChez(it, "peps"));
-  pops.AV.forEach(it => compterChez(it, "av"));
-  pops.actions.forEach(it => compterChez(it, "actions"));
-  pops.taches.forEach(it => compterChez(it, "taches"));
-  pops.mec.forEach(it => compterChez(it, "mec"));
-  pops.pap.forEach(it => compterChez(it, "pap"));
-  const nomsSynth = Array.from(parPorteurSynth.keys()).sort((a, b) => {
-    if (a === SANS_PORTEUR) return 1;
-    if (b === SANS_PORTEUR) return -1;
-    return a.localeCompare(b, "fr");
-  });
-  const cles = ["peps", "av", "actions", "taches", "mec", "pap"];
-  const total = cles.map(k => nomsSynth.reduce((s, n) => s + parPorteurSynth.get(n)[k], 0));
-  h.push(tableauSynthese(["Porteur", "PEPS", "AV", "Actions MEO", "Tâches", "MEC 2023", "PAPRIPACT"],
-    nomsSynth.map(n => [n].concat(cles.map(k => parPorteurSynth.get(n)[k]))), total));
   h.push("</div>");
 
   /* Détail par porteur du projet. */
@@ -2325,11 +2301,6 @@ function etatSponsorHtml(etat){
   }
 
   h.push(compteursHtml(etat, "sponsor"));
-  const lignes = etat.synthese.map(r => [grpAvecCode(r.libelle, r.code), r.peps, r.av, r.mec, r.pap]);
-  const tot = [0, 0];
-  etat.synthese.forEach(r => { tot[0] += r.peps; tot[1] += r.av; });
-  h.push(tableauSynthese(["Groupement", "PEPS", "AV", "MEC 2023", "PAPRIPACT"], lignes,
-    [tot[0], tot[1], etat.mec.length, etat.papripact.length]));
   h.push("</div>");
 
   if (etat.groupes.length) h.push('<div class="titre-partie">Détail des projets</div>');
