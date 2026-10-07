@@ -167,7 +167,7 @@
   .tab td.col-p2a,.tab td.col-origine{overflow:visible;white-space:nowrap;} .w-porteur{width:112px;}
   .w-service{width:112px;}
   .tab td.col-service{white-space:normal;overflow-wrap:anywhere;} .w-echeance{width:76px;} .w-avct{width:80px;} .w-cat{width:130px;}
-  .w-nb{width:74px;}
+  .w-nb{width:74px;} .w-grp{width:90px;}
   .bandeau{display:flex;align-items:baseline;gap:10px;background:var(--bleu-clair);border-left:4px solid var(--liseret);
     padding:5px 9px;margin:14px 0 0;}
   .bandeau .nom{font-weight:bold;color:var(--bleu-fonce);font-size:12.5px;}
@@ -689,7 +689,11 @@ function lireAction(ligne){
     echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
     echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance")),
     statut: etatStatut(statutBrut, pourcent, interrompu),
-    pourcent, interrompu
+    pourcent, interrompu,
+    /* Date de fin : Date_Fin, sinon (interrompu) date d'abandon ou de suspension. */
+    finBrut: rempli(ctx.brut(ligne, "Date_Fin")) ? ctx.brut(ligne, "Date_Fin")
+      : rempli(ctx.brut(ligne, "Date_Abandon")) ? ctx.brut(ligne, "Date_Abandon")
+      : ctx.brut(ligne, "Date_Suspension", "Date_suspension")
   };
 }
 
@@ -1927,8 +1931,39 @@ function construireEtatSponsor(sponsor){
     if (s === norm("Interrompu")) return f.interrompu;
     return true;
   };
+  const estClos = o => [norm("Terminé"), norm("Interrompu")].includes(norm(o.statut));
+  const garderFiltresProjet = p =>
+    (!f.texte || norm(p.a.cleProjet).includes(f.texte))
+    && f.natures.includes(p.a.nature)
+    && garderOrigine(p.a.origine, f.origine)
+    && (!f.grpSponsor || (p.grpLibelle || SANS_GROUPEMENT) === f.grpSponsor);
+
+  /* Projets terminés / interrompus : liste finale par année de démarrage (la plus récente
+     d'abord), toujours présente, quelles que soient les cases Terminé / Interrompu. */
+  const parAnnee = new Map();
+  duSponsor.filter(p => estClos(p.a) && garderFiltresProjet(p)).forEach(p => {
+    const an = anneeProjet(p.a.cleProjet);
+    const cle = an === null ? "" : String(an);
+    if (!parAnnee.has(cle)) parAnnee.set(cle, []);
+    parAnnee.get(cle).push(p);
+  });
+  const clos = Array.from(parAnnee.keys()).sort((a, b) => {
+    if (!a) return 1;
+    if (!b) return -1;
+    return Number(b) - Number(a);
+  }).map(an => ({
+    annee: an || "Année non identifiée",
+    projets: parAnnee.get(an).sort((x, y) => {
+      const dx = dateDe(x.a.finBrut), dy = dateDe(y.a.finBrut);
+      if (dx && dy && dx - dy) return dy - dx;
+      if (dx && !dy) return -1;
+      if (dy && !dx) return 1;
+      return x.a.cleProjet.localeCompare(y.a.cleProjet, "fr", { numeric: true });
+    })
+  }));
+
   const projets = duSponsor.filter(p =>
-    garderStatut(p.a)
+    !estClos(p.a)
     && (!f.texte || norm(p.a.cleProjet).includes(f.texte))
     && f.natures.includes(p.a.nature)
     && garderOrigine(p.a.origine, f.origine)
@@ -2033,7 +2068,7 @@ function construireEtatSponsor(sponsor){
 
   return {
     sponsor, tous, titre, nomCourt: morceaux.join(" "),
-    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte, mec, papripact, synthese,
+    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte, mec, papripact, synthese, clos,
     sousDirections: Array.from(sousDirections).sort((a, b) => a.localeCompare(b, "fr")),
     codesGroupements: Array.from(codesGroupements).sort((a, b) => a.localeCompare(b, "fr"))
   };
@@ -2437,6 +2472,30 @@ function tableauSynthese(colonnes, lignes, total){
   return h.join("");
 }
 
+/* Projets terminés et interrompus, par année de démarrage. */
+function closHtml(clos){
+  if (!clos.length) return "";
+  const h = ['<div class="titre-partie">Projets terminés et interrompus</div>'];
+  clos.forEach(g => {
+    const n = g.projets.length;
+    h.push('<div class="bandeau"><span class="nom">' + echapper(g.annee) + '</span><span class="info">'
+      + n + " projet" + (n > 1 ? "s" : "") + "</span></div>");
+    h.push('<table class="tab plat"><thead><tr><th>Projet</th><th class="c w-nat col-nat">Nat.</th>'
+      + '<th class="c w-grp">Groupement</th><th class="c w-porteur col-porteur">Porteur</th>'
+      + '<th class="c w-avct">Statut</th><th class="c w-echeance">Date de fin</th></tr></thead><tbody>');
+    g.projets.forEach(p => {
+      h.push('<tr><td class="lib">' + echapper(p.a.cleProjet) + "</td>"
+        + '<td class="c col-nat">' + echapper(p.a.nature) + "</td>"
+        + '<td class="c">' + echapper(p.grpCode || p.grpLibelle || "") + "</td>"
+        + '<td class="c col-porteur">' + echapper(p.a.porteur) + "</td>"
+        + '<td class="c">' + pastille(p.a) + "</td>"
+        + '<td class="c">' + echapper(formatDate(p.a.finBrut)) + "</td></tr>");
+    });
+    h.push("</tbody></table>");
+  });
+  return h.join("");
+}
+
 function etatSponsorHtml(etat){
   const ef = etat.filtres;
   const h = ['<div class="synthese"><div class="entete-grp">'];
@@ -2455,7 +2514,7 @@ function etatSponsorHtml(etat){
     h.push('<div class="avertissement">Métadonnées du document illisibles : les colonnes de référence peuvent s\'afficher sous forme de numéro de ligne.</div>');
   }
 
-  const vide = !etat.compte.projets && !etat.mec.length && !etat.papripact.length;
+  const vide = !etat.compte.projets && !etat.mec.length && !etat.papripact.length && !etat.clos.length;
   if (vide){
     h.push('<div class="vide-etat">Aucune ligne ne correspond à la sélection.</div></div>');
     return h.join("");
@@ -2480,6 +2539,7 @@ function etatSponsorHtml(etat){
     h.push("</tbody></table>");
   });
 
+  h.push(closHtml(etat.clos));
   h.push(annexesHtml(etat.mec.map(p => p.a), etat.papripact.map(p => p.a)));
   return h.join("");
 }
@@ -2499,7 +2559,7 @@ function afficherSponsor(){
 
 /* Un sponsor sans aucune ligne après filtres n'est pas édité. */
 function etatSponsorVide(e){
-  return !e.compte.projets && !e.mec.length && !e.papripact.length;
+  return !e.compte.projets && !e.mec.length && !e.papripact.length && !e.clos.length;
 }
 function etatsSponsorsNonVides(){
   return listeSponsors().map(construireEtatSponsor).filter(e => !etatSponsorVide(e));
