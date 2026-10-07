@@ -1582,7 +1582,7 @@ async function exporterExcel(tousLesGroupements){
 }
 
 /* =========================================================
-   État par sponsor CODIR : projets PEPS / AV uniquement
+   État par sponsor CODIR : projets PEPS / AV, MEC 2023, PAPRIPACT
    ========================================================= */
 let vue = "groupement";
 let sponsorCourant = TOUS;
@@ -1637,12 +1637,66 @@ function projetsPepsAv(){
   return res;
 }
 
+/* MEC 2023 et PAPRIPACT : groupement de chaque ligne d'après les listes de la table Groupement. */
+function groupementsParListes(tableCible, noms, cles){
+  const TG = reglages.tGroupement;
+  const res = new Map();
+  ctxDe(TG).lignes.forEach(lg => {
+    const code = texte(TG, lg, "Groupement");
+    if (!code) return;
+    resoudre(TG, lg, noms, tableCible, cles).trouves.forEach(l => {
+      if (!res.has(l.id)) res.set(l.id, []);
+      if (!res.get(l.id).includes(code)) res.get(l.id).push(code);
+    });
+  });
+  return res;
+}
+
+/* Sponsor d'une ligne MEC 2023 / PAPRIPACT : colonne Sponsor_CODIR de la ligne,
+   sinon celui de son groupement (colonne Groupement ou listes de la table Groupement),
+   sinon celui du collaborateur porteur. Une ligne listée dans plusieurs groupements
+   est reprise pour chacun d'eux. */
+function annexesSponsor(){
+  const TG = reglages.tGroupement, TC = reglages.tCollaborateur;
+  const sources = [
+    { table: reglages.tMec, facteur: facteurs.mec, cles: CLES_MEC, famille: "MEC 2023",
+      noms: ["MEC_2023_ID_MEC_2023", "Liste_MEC_2023", "MEC_2023"] },
+    { table: reglages.tPapripact, facteur: facteurs.pap, cles: CLES_PAP, famille: "PAPRIPACT",
+      noms: ["PAPRIPACT_Action_PAPRIPACT", "Liste_PAPRIPACT", "PAPRIPACT"] }
+  ];
+  const res = [];
+  sources.forEach(src => {
+    const parListes = groupementsParListes(src.table, src.noms, src.cles);
+    ctxDe(src.table).lignes.forEach(l => {
+      const lu = lireAnnexe(src.table, l, src.facteur, src.cles);
+      const a = Object.assign({}, lu, { cleProjet: lu.libelle, nature: src.famille, millesime: "", origine: "" });
+      const collab = ligneCollaborateurDe(lu.porteur);
+      let grps = lu.groupement ? [lu.groupement] : (parListes.get(l.id) || []);
+      if (!grps.length && collab && texte(TC, collab, "Groupement")) grps = [texte(TC, collab, "Groupement")];
+      if (!grps.length) grps = [""];
+      const sponsorLigne = texte(src.table, l, "Sponsor_CODIR");
+      grps.forEach(g => {
+        const lg = ligneGroupementDe(g);
+        res.push({
+          a, famille: src.famille,
+          sponsor: sponsorLigne || (lg ? texte(TG, lg, "Sponsor_CODIR") : "")
+            || (collab ? texte(TC, collab, "Sponsor_CODIR") : ""),
+          grpCode: lg ? texte(TG, lg, "Groupement") : g,
+          grpLibelle: lg ? (texte(TG, lg, "Libellé_Groupement", "Libelle_Groupement") || texte(TG, lg, "Groupement")) : g
+        });
+      });
+    });
+  });
+  return res;
+}
+
 function listeSponsors(){
   const TG = reglages.tGroupement;
   const s = new Set();
   ctxDe(TG).lignes.forEach(l => { const v = texte(TG, l, "Sponsor_CODIR"); if (v) s.add(v); });
   let sansSponsor = false;
-  projetsPepsAv().forEach(p => { if (p.sponsor) s.add(p.sponsor); else sansSponsor = true; });
+  projetsPepsAv().concat(annexesSponsor())
+    .forEach(p => { if (p.sponsor) s.add(p.sponsor); else sansSponsor = true; });
   const liste = Array.from(s).sort((a, b) => a.localeCompare(b, "fr"));
   if (sansSponsor) liste.push(SANS_SPONSOR);
   return liste;
@@ -1660,14 +1714,15 @@ function remplirSponsors(){
 function construireEtatSponsor(sponsor){
   const f = lireFiltres();
   const tous = sponsor === TOUS;
-  const duSponsor = projetsPepsAv().filter(p => tous
-    || (sponsor === SANS_SPONSOR ? !p.sponsor : p.sponsor === sponsor));
+  const deCeSponsor = p => tous || (sponsor === SANS_SPONSOR ? !p.sponsor : p.sponsor === sponsor);
+  const duSponsor = projetsPepsAv().filter(deCeSponsor);
+  const annexesDuSponsor = annexesSponsor().filter(deCeSponsor);
 
   /* Groupements proposés dans le filtre : ceux du sponsor, avant filtrage. */
-  const groupementsDisponibles = Array.from(new Set(duSponsor.map(p => p.grpLibelle || SANS_GROUPEMENT)))
-    .sort((a, b) => a.localeCompare(b, "fr"));
+  const groupementsDisponibles = Array.from(new Set(duSponsor.concat(annexesDuSponsor)
+    .map(p => p.grpLibelle || SANS_GROUPEMENT))).sort((a, b) => a.localeCompare(b, "fr"));
   const affichageGroupements = {};
-  duSponsor.forEach(p => {
+  duSponsor.concat(annexesDuSponsor).forEach(p => {
     if (p.grpLibelle && !affichageGroupements[p.grpLibelle])
       affichageGroupements[p.grpLibelle] = grpAvecCode(p.grpLibelle, p.grpCode);
   });
@@ -1684,6 +1739,26 @@ function construireEtatSponsor(sponsor){
     && (!f.nature || p.a.nature === f.nature)
     && garderOrigine(p.a.origine, f.origine)
     && (!f.grpSponsor || (p.grpLibelle || SANS_GROUPEMENT) === f.grpSponsor));
+
+  /* MEC 2023 et PAPRIPACT : masqués quand une nature PEPS / AV est choisie.
+     Une ligne rattachée à plusieurs groupements n'apparaît qu'une fois sans filtre groupement. */
+  const vus = new Set();
+  const annexes = f.nature ? [] : annexesDuSponsor.filter(p => {
+    if (!garderStatut(p.a) || (f.texte && !norm(p.a.libelle).includes(f.texte))) return false;
+    if (f.grpSponsor && (p.grpLibelle || SANS_GROUPEMENT) !== f.grpSponsor) return false;
+    const cle = p.famille + "|" + p.a.id;
+    if (vus.has(cle)) return false;
+    vus.add(cle);
+    return true;
+  });
+  const aujourdHuiA = new Date(); aujourdHuiA.setHours(0, 0, 0, 0);
+  annexes.forEach(p => {
+    p.depasse = !!p.a.echeanceDate && p.a.echeanceDate < aujourdHuiA && p.a.pourcent < 100 && !p.a.interrompu;
+  });
+  const triAnnexe = (x, y) => (x.a.categorie || "").localeCompare(y.a.categorie || "", "fr")
+    || x.a.libelle.localeCompare(y.a.libelle, "fr", { numeric: true });
+  const mec = annexes.filter(p => p.famille === "MEC 2023").sort(triAnnexe);
+  const papripact = annexes.filter(p => p.famille === "PAPRIPACT").sort(triAnnexe);
 
   /* Regroupement par groupement porteur. */
   const parGroupement = new Map();
@@ -1744,7 +1819,7 @@ function construireEtatSponsor(sponsor){
 
   return {
     sponsor, tous, titre, nomCourt: morceaux.join(" "),
-    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte,
+    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte, mec, papripact,
     sousDirections: Array.from(sousDirections).sort((a, b) => a.localeCompare(b, "fr")),
     codesGroupements: Array.from(codesGroupements).sort((a, b) => a.localeCompare(b, "fr"))
   };
@@ -1779,7 +1854,8 @@ function etatSponsorHtml(etat){
   if (etat.codesGroupements.length) meta.push("Groupements : <b>" + echapper(etat.codesGroupements.join(", ")) + "</b>");
   if (ef.grpSponsor) meta.push("Filtre groupement : <b>"
     + echapper(etat.affichageGroupements[ef.grpSponsor] || ef.grpSponsor) + "</b>");
-  meta.push("Périmètre : <b>projets " + (ef.nature || "PEPS et AV") + " uniquement</b>");
+  meta.push("Périmètre : <b>" + (ef.nature ? "projets " + ef.nature + " uniquement"
+    : "projets PEPS et AV, MEC 2023, PAPRIPACT") + "</b>");
   if (ef.origine) meta.push("Origine : <b>" + echapper(libelleFiltreOrigine(ef.origine)) + "</b>");
   h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
   h.push("</div>");
@@ -1793,8 +1869,14 @@ function etatSponsorHtml(etat){
   h.push('<div class="compteur"><div class="n">' + c.peps + " / " + c.av + '</div><div class="l">dont PEPS / AV</div></div>');
   h.push('<div class="compteur"><div class="n">' + c.moyenne + ' %</div><div class="l">avancement moyen</div></div>');
   h.push('<div class="compteur"><div class="n">' + c.depasses + '</div><div class="l">échéance dépassée</div></div>');
+  h.push('<div class="compteur"><div class="n">' + etat.mec.length + '</div><div class="l">MEC 2023</div></div>');
+  h.push('<div class="compteur"><div class="n">' + etat.papripact.length + '</div><div class="l">PAPRIPACT</div></div>');
   h.push("</div>");
 
+  if (!c.projets && !etat.mec.length && !etat.papripact.length){
+    h.push('<div class="vide-etat">Aucune ligne ne correspond à la sélection.</div>');
+    return h.join("");
+  }
   if (c.projets){
     h.push('<div class="repartition">');
     ordre.forEach(s => {
@@ -1808,9 +1890,6 @@ function etatSponsorHtml(etat){
       if (n) h.push('<span><i class="puce" style="background:' + couleurs[s] + '"></i>' + s + " : " + n + "</span>");
     });
     h.push("</div>");
-  } else {
-    h.push('<div class="vide-etat">Aucun projet ne correspond à la sélection.</div>');
-    return h.join("");
   }
 
   etat.groupes.forEach(g => {
@@ -1821,6 +1900,8 @@ function etatSponsorHtml(etat){
     g.projets.forEach(p => h.push(ligneProjetSeulHtml(p, etat.tous)));
     h.push("</div>");
   });
+  h.push(sectionAnnexe("MEC 2023", etat.mec.map(p => p.a), true));
+  h.push(sectionAnnexe("PAPRIPACT", etat.papripact.map(p => p.a), false));
   return h.join("");
 }
 
@@ -1920,14 +2001,17 @@ function ecrireLigneSponsor(ws, p, colonnes, prefixe){
 function ajouterFeuilleSponsor(wb, etat, prises){
   const ws = preparerFeuille(wb, nomFeuille({ nomCourt: etat.titre }, prises), COLONNES_SPONSOR, false);
   etat.groupes.forEach(g => g.projets.forEach(p => ecrireLigneSponsor(ws, p, COLONNES_SPONSOR, [])));
+  etat.mec.concat(etat.papripact).forEach(p => ecrireLigneSponsor(ws, p, COLONNES_SPONSOR, []));
   return ws;
 }
 
 function ajouterFeuilleRecapSponsor(wb, etats){
   const colonnes = [{ titre: "Sponsor CODIR", largeur: 24, centre: true }].concat(COLONNES_SPONSOR);
   const ws = preparerFeuille(wb, "Récapitulatif", colonnes, true);
-  etats.forEach(etat => etat.groupes.forEach(g => g.projets.forEach(p =>
-    ecrireLigneSponsor(ws, p, colonnes, [etat.titre]))));
+  etats.forEach(etat => {
+    etat.groupes.forEach(g => g.projets.forEach(p => ecrireLigneSponsor(ws, p, colonnes, [etat.titre])));
+    etat.mec.concat(etat.papripact).forEach(p => ecrireLigneSponsor(ws, p, colonnes, [etat.titre]));
+  });
   return ws;
 }
 
