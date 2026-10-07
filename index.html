@@ -98,6 +98,8 @@
     box-shadow:0 8px 30px rgba(0,0,0,.25);max-height:92vh;overflow:auto;}
   .reglages-boite h3{font-size:14px;margin-bottom:10px;}
   .reglages-boite .champ{margin-bottom:9px;}
+  .reglages-boite{max-height:90vh;overflow-y:auto;}
+  .reglages-boite textarea{width:100%;font-family:inherit;font-size:12px;padding:4px 6px;border:1px solid var(--trait);border-radius:3px;resize:vertical;margin-bottom:3px;}
   .reglages-boite input[type=text]{width:100%;}
   .reglages-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
   .aide{font-size:11px;color:var(--attenue);margin-top:2px;}
@@ -186,7 +188,17 @@
   body .tab tr.rub td,
   body .tab tr.tot td,
   body .tab tr.ins td{background:transparent;}
-    @page{size:A4 portrait;margin:14mm 12mm;}
+    .rappel{border:1px solid var(--trait);border-left:4px solid var(--liseret);border-radius:3px;
+    padding:9px 12px;background:#FCFAF7;margin:4px 0 12px;}
+  .rappel h4{margin:0 0 7px;font-size:11.5px;color:var(--bleu-fonce);text-transform:uppercase;letter-spacing:.4px;}
+  .rappel .g{display:grid;gap:9px;}
+  .rappel .c{background:#fff;border:1px solid #EDE7DD;border-radius:3px;padding:7px 9px;}
+  .rappel .k{display:inline-block;font-weight:bold;color:#fff;background:var(--liseret);border-radius:9px;
+    padding:0 8px;margin-right:6px;font-size:11px;}
+  .rappel .c b{color:var(--bleu-fonce);}
+  .rappel .c p{margin:5px 0 0;line-height:1.45;font-size:11.5px;}
+  .rappel .c .ex{color:var(--attenue);font-style:italic;margin-top:3px;}
+  @page{size:A4 portrait;margin:14mm 12mm;}
   @media print{
     .barre,.reglages,.repli{display:none !important;}
     .contenu{padding:0;}
@@ -204,7 +216,7 @@
     .annexes{break-before:page;page-break-before:always;}
     .page-clos{break-before:page;page-break-before:always;}
     .section-impression > .page-clos:first-child{break-before:auto;page-break-before:auto;}
-    .tab tr.ins td,.bloc,.tab th,.tab tr.pj td,.tab tr.tot td,.tab tr.rub td,.bandeau,.tab.plat tbody tr td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .rappel,.rappel .k,.tab tr.ins td,.bloc,.tab th,.tab tr.pj td,.tab tr.tot td,.tab tr.rub td,.bandeau,.tab.plat tbody tr td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
 </style>
@@ -293,7 +305,8 @@
     </div>
     <div class="champ">
       <span>Afficher</span>
-      <div class="cases"><label><input type="checkbox" id="chkInstances"> Passages en instances</label></div>
+      <div class="cases"><label><input type="checkbox" id="chkRappel" checked> Rappel en tête</label>
+        <label><input type="checkbox" id="chkInstances"> Passages en instances</label></div>
     </div>
     <div class="champ">
       <span>Colonnes imprimées</span>
@@ -344,6 +357,17 @@
     <div class="champ"><span>Table MEC 2023</span><input type="text" id="tMec"></div>
     <div class="champ"><span>Table PAPRIPACT</span><input type="text" id="tPapripact"></div>
     <div class="champ"><span>Table des instances</span><input type="text" id="tInstance"></div>
+    <div class="champ" style="margin-top:12px"><span><b>Rappel en tête des éditions</b></span></div>
+    <div class="champ"><span>Projet (PEPS)</span><textarea id="rappelPEPS" rows="3"></textarea>
+      <input type="text" id="rappelExPEPS" placeholder="Exemple (facultatif)"></div>
+    <div class="champ"><span>Action (AV)</span><textarea id="rappelAV" rows="3"></textarea>
+      <input type="text" id="rappelExAV" placeholder="Exemple (facultatif)"></div>
+    <div class="champ"><span>P2A (Programme annuel d'actions)</span><textarea id="rappelP2A" rows="3"></textarea>
+      <input type="text" id="rappelExP2A" placeholder="Exemple (facultatif)"></div>
+    <div class="champ"><span>Action de mise en œuvre (MEO) — édition par groupement</span><textarea id="rappelMEO" rows="3"></textarea>
+      <input type="text" id="rappelExMEO" placeholder="Exemple (facultatif)"></div>
+    <div class="champ"><span>Tâche — édition par groupement</span><textarea id="rappelTache" rows="3"></textarea>
+      <input type="text" id="rappelExTache" placeholder="Exemple (facultatif)"></div>
     <div class="champ">
       <span>Rattachement au groupement</span>
       <select id="mode">
@@ -373,6 +397,16 @@ const REGLAGES_DEFAUT = {
   tMec: "MEC_2023",
   tPapripact: "PAPRIPACT",
   tInstance: "Instance",
+  rappelPEPS: "Démarche structurante, pluriannuelle, avec un objectif, un porteur, un planning et des moyens identifiés. Il se décline en actions de mise en œuvre (MEO) et en tâches.",
+  rappelExPEPS: "2026_12_P Plan volontariat",
+  rappelAV: "Opération ciblée, de périmètre et de durée limités, portée par un agent. Elle peut se découper en tâches, sans passer par des actions de mise en œuvre (MEO).",
+  rappelExAV: "2026_16_A Expérimentation d'une application",
+  rappelP2A: "Représente la feuille de route annuelle de l'établissement. Il réunit des actions de mise en œuvre (MEO) issues des projets (PEPS), des actions autoportées (AV), des actions issues de la MEC et des actions issues du PAPRIPACT.",
+  rappelExP2A: "",
+  rappelMEO: "Étape de réalisation d'un projet, confiée à un porteur avec une échéance. Elle regroupe les tâches nécessaires à sa réalisation.",
+  rappelExMEO: "",
+  rappelTache: "Travail élémentaire, rattaché à une action de mise en œuvre (MEO) ou directement à un projet, avec un porteur et une échéance.",
+  rappelExTache: "",
   mode: "listes"
 };
 let reglages = Object.assign({}, REGLAGES_DEFAUT);
@@ -1327,6 +1361,7 @@ function etatHtml(etat, pourImpression){
   if (etat.sponsor) meta.push("Sponsor CODIR : <b>" + echapper(etat.sponsor) + "</b>");
   if (meta.length) h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
   h.push("</div>");
+  if (etat.avecRappel) h.push(rappelHtml("groupement"));
 
   if (D.absentes.length){
     h.push('<div class="avertissement">Table introuvable : ' + echapper(D.absentes.join(", "))
@@ -1430,7 +1465,7 @@ function afficher(){
     zone.innerHTML =
       '<div class="entete-impression"><div class="t">Projet — ' + echapper(seul)
       + '</div><div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
-      + '<div class="section-impression">' + etatHtml(etatSeul, false) + "</div>";
+      + '<div class="section-impression">' + etatHtml(Object.assign(etatSeul, { avecRappel: true }), false) + "</div>";
     brancherReplis();
     return;
   }
@@ -1450,7 +1485,7 @@ function afficher(){
   zone.innerHTML =
     '<div class="entete-impression"><div class="t">État — ' + echapper(etat.titre)
     + '</div><div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
-    + '<div class="section-impression">' + etatHtml(etat, false) + "</div>";
+    + '<div class="section-impression">' + etatHtml(Object.assign(etat, { avecRappel: true }), false) + "</div>";
   brancherReplis();
 }
 
@@ -1521,7 +1556,7 @@ function imprimerTous(){
   zone.innerHTML =
     '<div class="entete-impression"><div class="t">État par groupement — tous les groupements</div>'
     + '<div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
-    + morceaux.join("");
+    + rappelHtml("groupement") + morceaux.join("");
   window.print();
   setTimeout(() => { zone.innerHTML = sauvegarde; brancherReplis(); }, 800);
 }
@@ -2338,6 +2373,28 @@ function compteursHtml(etat, v){
 }
 
 /* =========================================================
+   Rappel des définitions en tête d'édition
+   ========================================================= */
+function rappelHtml(v){
+  if (!document.getElementById("chkRappel").checked) return "";
+  const cartes = [["PEPS", "Projet", "rappelPEPS", "rappelExPEPS"], ["AV", "Action", "rappelAV", "rappelExAV"],
+    ["P2A", "Programme annuel d'actions", "rappelP2A", "rappelExP2A"]];
+  if (v !== "sponsor") cartes.push(["MEO", "Action de mise en œuvre", "rappelMEO", "rappelExMEO"],
+    ["Tâche", "Tâche", "rappelTache", "rappelExTache"]);
+  const visibles = cartes.filter(c => (reglages[c[2]] || "").trim());
+  if (!visibles.length) return "";
+  const h = ['<div class="rappel"><h4>Rappel</h4><div class="g" style="grid-template-columns:repeat('
+    + Math.min(visibles.length, 3) + ',minmax(0,1fr))">'];
+  visibles.forEach(([k, titre, def, ex]) => {
+    h.push('<div class="c"><span class="k">' + echapper(k) + "</span><b>" + echapper(titre) + "</b>"
+      + "<p>" + echapper(reglages[def]) + "</p>"
+      + ((reglages[ex] || "").trim() ? '<p class="ex">Ex. : ' + echapper(reglages[ex]) + "</p>" : "") + "</div>");
+  });
+  h.push("</div></div>");
+  return h.join("");
+}
+
+/* =========================================================
    Passages en instances (table Instance)
    ========================================================= */
 let instancesParProjet = null;
@@ -2521,6 +2578,7 @@ function etatSponsorHtml(etat, sansClos){
     : ef.natures.length ? ef.natures.join(", ") : "aucune nature cochée") + "</b>");
   if (ef.origine) meta.push("Origine : <b>" + echapper(libelleFiltreOrigine(ef.origine)) + "</b>");
   h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div></div>");
+  if (etat.avecRappel) h.push(rappelHtml("sponsor"));
 
   if (!D.metaOk){
     h.push('<div class="avertissement">Métadonnées du document illisibles : les colonnes de référence peuvent s\'afficher sous forme de numéro de ligne.</div>');
@@ -2567,7 +2625,7 @@ function afficherSponsor(){
   zone.innerHTML =
     '<div class="entete-impression"><div class="t">État par sponsor CODIR — ' + echapper(etat.titre)
     + '</div><div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
-    + '<div class="section-impression">' + etatSponsorHtml(etat) + "</div>";
+    + '<div class="section-impression">' + etatSponsorHtml(Object.assign(etat, { avecRappel: true })) + "</div>";
 }
 
 /* Un sponsor sans aucune ligne après filtres n'est pas édité. */
@@ -2590,7 +2648,7 @@ function imprimerTousSponsors(){
   zone.innerHTML =
     '<div class="entete-impression"><div class="t">État par sponsor CODIR — tous les sponsors</div>'
     + '<div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
-    + morceaux.join("");
+    + rappelHtml("sponsor") + morceaux.join("");
   window.print();
   setTimeout(() => { zone.innerHTML = sauvegarde; }, 800);
 }
@@ -2726,7 +2784,7 @@ function remplirGroupements(){
 }
 
 function ouvrirReglages(){
-  ["tGroupement", "tCollaborateur", "tAction", "tTache", "tMec", "tPapripact", "tInstance", "mode"]
+  ["tGroupement", "tCollaborateur", "tAction", "tTache", "tMec", "tPapripact", "tInstance", "mode", "rappelPEPS", "rappelExPEPS", "rappelAV", "rappelExAV", "rappelP2A", "rappelExP2A", "rappelMEO", "rappelExMEO", "rappelTache", "rappelExTache"]
     .forEach(k => { document.getElementById(k).value = reglages[k]; });
   document.getElementById("panneauReglages").classList.add("ouvert");
 }
@@ -2862,7 +2920,7 @@ function brancherInterface(){
   document.getElementById("vueGroupement").addEventListener("click", () => changerVue("groupement"));
   document.getElementById("vueSponsor").addEventListener("click", () => changerVue("sponsor"));
   ["recherche", "selCollaborateur", "selService", "selModeCollab", "selProjet", "selPerimetre",
-   "chkTermine", "chkInterrompu", "selGrpSponsor", "selOrigine", "chkInstances"].forEach(id => {
+   "chkTermine", "chkInterrompu", "selGrpSponsor", "selOrigine", "chkInstances", "chkRappel"].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener(el.type === "search" ? "input" : "change", afficher);
   });
@@ -2877,6 +2935,8 @@ function brancherInterface(){
     const lu = {};
     ["tGroupement", "tCollaborateur", "tAction", "tTache", "tMec", "tPapripact", "tInstance"]
       .forEach(k => { lu[k] = document.getElementById(k).value.trim() || REGLAGES_DEFAUT[k]; });
+    ["rappelPEPS", "rappelExPEPS", "rappelAV", "rappelExAV", "rappelP2A", "rappelExP2A", "rappelMEO", "rappelExMEO", "rappelTache", "rappelExTache"]
+      .forEach(k => { lu[k] = document.getElementById(k).value.trim(); });
     lu.mode = document.getElementById("mode").value;
     reglages = Object.assign({}, reglages, lu);
     panneau.classList.remove("ouvert");
