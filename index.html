@@ -202,6 +202,8 @@
     .tab tr{break-inside:avoid;page-break-inside:avoid;}
     .bandeau,.titre-partie{break-after:avoid;page-break-after:avoid;}
     .annexes{break-before:page;page-break-before:always;}
+    .page-clos{break-before:page;page-break-before:always;}
+    .section-impression > .page-clos:first-child{break-before:auto;page-break-before:auto;}
     .tab tr.ins td,.bloc,.tab th,.tab tr.pj td,.tab tr.tot td,.tab tr.rub td,.bandeau,.tab.plat tbody tr td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none !important;}}
@@ -1940,27 +1942,8 @@ function construireEtatSponsor(sponsor){
 
   /* Projets terminés / interrompus : liste finale par année de démarrage (la plus récente
      d'abord), toujours présente, quelles que soient les cases Terminé / Interrompu. */
-  const parAnnee = new Map();
-  duSponsor.filter(p => estClos(p.a) && garderFiltresProjet(p)).forEach(p => {
-    const an = anneeProjet(p.a.cleProjet);
-    const cle = an === null ? "" : String(an);
-    if (!parAnnee.has(cle)) parAnnee.set(cle, []);
-    parAnnee.get(cle).push(p);
-  });
-  const clos = Array.from(parAnnee.keys()).sort((a, b) => {
-    if (!a) return 1;
-    if (!b) return -1;
-    return Number(b) - Number(a);
-  }).map(an => ({
-    annee: an || "Année non identifiée",
-    projets: parAnnee.get(an).sort((x, y) => {
-      const dx = dateDe(x.a.finBrut), dy = dateDe(y.a.finBrut);
-      if (dx && dy && dx - dy) return dy - dx;
-      if (dx && !dy) return -1;
-      if (dy && !dx) return 1;
-      return x.a.cleProjet.localeCompare(y.a.cleProjet, "fr", { numeric: true });
-    })
-  }));
+  const closListe = duSponsor.filter(p => estClos(p.a) && garderFiltresProjet(p));
+  const clos = grouperClos(closListe);
 
   const projets = duSponsor.filter(p =>
     !estClos(p.a)
@@ -2068,7 +2051,7 @@ function construireEtatSponsor(sponsor){
 
   return {
     sponsor, tous, titre, nomCourt: morceaux.join(" "),
-    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte, mec, papripact, synthese, clos,
+    filtres: f, groupementsDisponibles, affichageGroupements, groupes, compte, mec, papripact, synthese, clos, closListe,
     sousDirections: Array.from(sousDirections).sort((a, b) => a.localeCompare(b, "fr")),
     codesGroupements: Array.from(codesGroupements).sort((a, b) => a.localeCompare(b, "fr"))
   };
@@ -2472,31 +2455,60 @@ function tableauSynthese(colonnes, lignes, total){
   return h.join("");
 }
 
-/* Projets terminés et interrompus, par année de démarrage. */
+/* Regroupe des projets clos par année de démarrage (la plus récente d'abord),
+   puis par date de fin décroissante. */
+function grouperClos(liste){
+  const parAnnee = new Map();
+  liste.forEach(p => {
+    const an = anneeProjet(p.a.cleProjet);
+    const cle = an === null ? "" : String(an);
+    if (!parAnnee.has(cle)) parAnnee.set(cle, []);
+    parAnnee.get(cle).push(p);
+  });
+  return Array.from(parAnnee.keys()).sort((a, b) => {
+    if (!a) return 1;
+    if (!b) return -1;
+    return Number(b) - Number(a);
+  }).map(an => ({
+    annee: an || "Année non identifiée",
+    projets: parAnnee.get(an).sort((x, y) => {
+      const dx = dateDe(x.a.finBrut), dy = dateDe(y.a.finBrut);
+      if (dx && dy && dx - dy) return dy - dx;
+      if (dx && !dy) return -1;
+      if (dy && !dx) return 1;
+      return x.a.cleProjet.localeCompare(y.a.cleProjet, "fr", { numeric: true });
+    })
+  }));
+}
+
+/* Projets terminés et interrompus, par année de démarrage, sur une page à part en toute fin. */
 function closHtml(clos){
   if (!clos.length) return "";
-  const h = ['<div class="titre-partie">Projets terminés et interrompus</div>'];
+  const h = ['<div class="page-clos"><div class="titre-partie">Projets terminés et interrompus</div>'];
   clos.forEach(g => {
     const n = g.projets.length;
     h.push('<div class="bandeau"><span class="nom">' + echapper(g.annee) + '</span><span class="info">'
       + n + " projet" + (n > 1 ? "s" : "") + "</span></div>");
     h.push('<table class="tab plat"><thead><tr><th>Projet</th><th class="c w-nat col-nat">Nat.</th>'
-      + '<th class="c w-grp">Groupement</th><th class="c w-porteur col-porteur">Porteur</th>'
+      + '<th class="c w-grp">Groupement</th><th class="c w-porteur">Sponsor CODIR</th>'
+      + '<th class="c w-porteur col-porteur">Porteur</th>'
       + '<th class="c w-avct">Statut</th><th class="c w-echeance">Date de fin</th></tr></thead><tbody>');
     g.projets.forEach(p => {
       h.push('<tr><td class="lib">' + echapper(p.a.cleProjet) + "</td>"
         + '<td class="c col-nat">' + echapper(p.a.nature) + "</td>"
         + '<td class="c">' + echapper(p.grpCode || p.grpLibelle || "") + "</td>"
+        + '<td class="c">' + echapper(p.sponsor || "") + "</td>"
         + '<td class="c col-porteur">' + echapper(p.a.porteur) + "</td>"
         + '<td class="c">' + pastille(p.a) + "</td>"
         + '<td class="c">' + echapper(formatDate(p.a.finBrut)) + "</td></tr>");
     });
     h.push("</tbody></table>");
   });
+  h.push("</div>");
   return h.join("");
 }
 
-function etatSponsorHtml(etat){
+function etatSponsorHtml(etat, sansClos){
   const ef = etat.filtres;
   const h = ['<div class="synthese"><div class="entete-grp">'];
   h.push("<h2>" + (etat.tous ? "" : "Sponsor CODIR : ") + echapper(etat.titre) + "</h2>");
@@ -2514,7 +2526,8 @@ function etatSponsorHtml(etat){
     h.push('<div class="avertissement">Métadonnées du document illisibles : les colonnes de référence peuvent s\'afficher sous forme de numéro de ligne.</div>');
   }
 
-  const vide = !etat.compte.projets && !etat.mec.length && !etat.papripact.length && !etat.clos.length;
+  const vide = !etat.compte.projets && !etat.mec.length && !etat.papripact.length
+    && (sansClos || !etat.clos.length);
   if (vide){
     h.push('<div class="vide-etat">Aucune ligne ne correspond à la sélection.</div></div>');
     return h.join("");
@@ -2539,8 +2552,8 @@ function etatSponsorHtml(etat){
     h.push("</tbody></table>");
   });
 
-  h.push(closHtml(etat.clos));
   h.push(annexesHtml(etat.mec.map(p => p.a), etat.papripact.map(p => p.a)));
+  if (!sansClos) h.push(closHtml(etat.clos));
   return h.join("");
 }
 
@@ -2568,8 +2581,12 @@ function etatsSponsorsNonVides(){
 function imprimerTousSponsors(){
   const zone = document.getElementById("contenu");
   const sauvegarde = zone.innerHTML;
-  const morceaux = etatsSponsorsNonVides().map(e =>
-    '<div class="section-impression">' + etatSponsorHtml(e) + "</div>");
+  const etats = etatsSponsorsNonVides();
+  const morceaux = etats
+    .filter(e => e.compte.projets || e.mec.length || e.papripact.length)
+    .map(e => '<div class="section-impression">' + etatSponsorHtml(e, true) + "</div>");
+  const clos = grouperClos(etats.reduce((acc, e) => acc.concat(e.closListe), []));
+  if (clos.length) morceaux.push('<div class="section-impression">' + closHtml(clos) + "</div>");
   zone.innerHTML =
     '<div class="entete-impression"><div class="t">État par sponsor CODIR — tous les sponsors</div>'
     + '<div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
