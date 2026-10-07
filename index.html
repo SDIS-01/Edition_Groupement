@@ -151,10 +151,12 @@
   .tab tr.rub td{background:#FBF9F6;font-weight:bold;color:var(--bleu-fonce);}
   .tab tr.contexte td{font-style:italic;color:var(--attenue);}
   .tab tr.tot td{background:var(--bleu-clair);font-weight:bold;color:var(--bleu-fonce);border-top:1px solid var(--liseret);}
-  .tab .pastille-p2a,.tab .pastille-origine{margin-left:0;}
+  /* Dans les tableaux : texte coloré, sans bulle */
+  .tab .pastille-p2a,.tab .pastille-origine{margin-left:0;padding:0;background:none !important;border:none !important;
+    border-radius:0;font-size:11px;}
   .tab .repli{display:inline-block;margin-right:4px;}
   .ech-depasse{color:#C0504D;font-weight:bold;}
-  .w-nat{width:46px;} .w-p2a{width:84px;} .w-origine{width:124px;}
+  .w-nat{width:46px;} .w-p2a{width:72px;} .w-origine{width:110px;}
   .tab td.col-p2a,.tab td.col-origine{overflow:visible;white-space:nowrap;} .w-porteur{width:112px;}
   .w-service{width:112px;}
   .tab td.col-service{white-space:normal;overflow-wrap:anywhere;} .w-echeance{width:76px;} .w-avct{width:80px;} .w-cat{width:130px;}
