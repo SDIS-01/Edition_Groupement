@@ -330,9 +330,10 @@ function listeRef(v){
 function couleurAvancement(pourcent, interrompu){
   if (interrompu) return { fond: "#4A4A4A", clair: false, libelle: "Interrompu" };
   if (pourcent >= 100) return { fond: "#9BBB59", clair: false, libelle: "Terminé" };
-  if (pourcent >= 50)  return { fond: "#FFCC00", clair: true,  libelle: pourcent + " %" };
+  if (pourcent >= 76)  return { fond: "#9BBB59", clair: false, libelle: pourcent + " %" };
+  if (pourcent >= 26)  return { fond: "#FFCC00", clair: true,  libelle: pourcent + " %" };
   if (pourcent >= 1)   return { fond: "#F79646", clair: false, libelle: pourcent + " %" };
-  return { fond: "#C0504D", clair: false, libelle: "À faire" };
+  return { fond: "#C0504D", clair: false, libelle: "A engager" };
 }
 
 /* =========================================================
@@ -1388,7 +1389,8 @@ function couleurExcel(o){
   if (!o) return null;
   if (o.interrompu) return { fond: "FF8C8070", blanc: true };
   if (o.pourcent >= 100) return { fond: "FF9BBB59", blanc: false };
-  if (o.pourcent >= 50) return { fond: "FFFFCC00", blanc: false };
+  if (o.pourcent >= 76) return { fond: "FF9BBB59", blanc: false };
+  if (o.pourcent >= 26) return { fond: "FFFFCC00", blanc: false };
   if (o.pourcent >= 1) return { fond: "FFF79646", blanc: false };
   return { fond: "FFC0504D", blanc: true };
 }
