@@ -160,8 +160,8 @@
   .tab tr.ins .ic{color:var(--liseret);margin-right:4px;}
   .tab tr.ins .sep{color:#C9BFB1;margin:0 6px;}
   .tab tr.ins .fait b{color:var(--bleu-fonce);}
-  .tab tr.ins .fut{font-style:italic;}
-  .tab tr.ins .fut b{color:#002395;}
+  .tab tr.ins .fut b{color:var(--bleu-fonce);}
+  .tab tr.ins .fut .d{color:#C0504D;font-weight:normal;}
   .tab tr.ins .prog{font-style:italic;color:#A2551A;}
   .w-nat{width:46px;} .w-p2a{width:72px;} .w-origine{width:110px;}
   .tab td.col-p2a,.tab td.col-origine{overflow:visible;white-space:nowrap;} .w-porteur{width:112px;}
@@ -2350,7 +2350,8 @@ function ligneInstances(cleProjet, nbCol){
   const j = new Date(); j.setHours(0, 0, 0, 0);
   const morceaux = liste.map(x => {
     const nom = "<b>" + echapper(x.instance || "Instance") + "</b>";
-    if (x.date) return '<span class="' + (x.date < j ? "fait" : "fut") + '">' + nom + " " + echapper(x.dateTxt) + "</span>";
+    if (x.date) return '<span class="' + (x.date < j ? "fait" : "fut") + '">' + nom + ' <span class="d">'
+      + echapper(x.dateTxt) + "</span></span>";
     return '<span class="prog">' + nom + (x.periode ? " " + echapper(x.periode) : "") + ", à programmer</span>";
   });
   return '<tr class="ins"><td colspan="' + (nbCol || 7) + '"><span class="ic">Instances :</span>'
