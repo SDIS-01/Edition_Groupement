@@ -249,7 +249,8 @@
     </div>
     <div class="champ seul-grp">
       <span>Projet</span>
-      <input type="search" id="selProjet" list="listeProjets" placeholder="Tous — tapez pour chercher" autocomplete="off">
+      <input type="search" id="selProjet" list="listeProjets" placeholder="Tous — tapez pour chercher" autocomplete="off"
+        title="Un projet choisi dans la liste est édité seul, avec toutes ses actions et tâches. Un mot partiel filtre le groupement courant.">
       <datalist id="listeProjets"></datalist>
     </div>
     <div class="champ seul-grp">
@@ -831,7 +832,30 @@ function rattachementsTous(){
     papripact: ids(reglages.tPapripact), parListes: true };
 }
 
-function construireEtat(code){
+/* Tous les projets PEPS / AV de la table (identifiants). */
+function tousLesProjets(){
+  const TA = reglages.tAction, res = new Set();
+  ctxDe(TA).lignes.forEach(l => {
+    if (texte(TA, l, "Nature").toUpperCase() === "MEO") return;
+    const cle = texte(TA, l, "ID_Projet_Action_AV");
+    if (cle) res.add(cle);
+  });
+  return Array.from(res).sort((a, b) => a.localeCompare(b, "fr"));
+}
+
+/* Projet seul : la saisie du filtre Projet est exactement un projet de la table (vue groupement). */
+function projetSeulActif(){
+  if (vue === "sponsor") return "";
+  const v = document.getElementById("selProjet").value;
+  return v && tousLesProjets().includes(v) ? v : "";
+}
+
+/* En vue projet seul, le projet est édité avec toutes ses actions et tâches, quel que soit
+   le groupement et sans tenir compte des autres filtres. Les éditions « tous groupements »
+   (sansProjetSeul) gardent le filtrage habituel. */
+function construireEtat(code, sansProjetSeul){
+  const seul = sansProjetSeul ? "" : projetSeulActif();
+  if (seul) code = TOUS;
   const TG = reglages.tGroupement, ctxG = ctxDe(TG);
   const tous = code === TOUS;
   const ligneG = tous ? null : ctxG.lignes.find(l => texte(TG, l, "Groupement") === code);
@@ -840,7 +864,10 @@ function construireEtat(code){
   const libelle = tous ? "Tous les groupements"
     : (texte(TG, ligneG, "Libellé_Groupement", "Libelle_Groupement") || code);
   const rat = tous ? rattachementsTous() : rattachements(ligneG, code, libelle);
-  const f = lireFiltres();
+  const f = seul
+    ? Object.assign(lireFiltres(), { projet: seul, texte: "", collaborateur: "", service: "", origine: "",
+        termine: true, interrompu: true, perimetre: "implication" })
+    : lireFiltres();
 
   const TA = reglages.tAction, TT = reglages.tTache;
   const ctxA = ctxDe(TA), ctxT = ctxDe(TT);
@@ -1075,8 +1102,17 @@ function construireEtat(code){
   if (!morceaux.length) morceaux.push("tous");
   const nomCourt = morceaux.join(" ");
 
+  /* Fiche du projet seul : sa ligne PEPS / AV. */
+  let infosProjet = null;
+  if (seul){
+    const l = ctxA.lignes.find(x => texte(TA, x, "Nature").toUpperCase() !== "MEO"
+      && texte(TA, x, "ID_Projet_Action_AV") === seul);
+    if (l) infosProjet = lireAction(l);
+  }
+
   return {
     code, libelle, tous, titre, nomCourt,
+    projetSeul: !!seul, infosProjet,
     filtres: f,
     projetsDisponibles,
     servicesDisponibles,
@@ -1216,8 +1252,21 @@ function etatHtml(etat, pourImpression){
     + (etat.tous ? "" : ' <span style="font-weight:normal;font-size:13px">(' + echapper(etat.code) + ")</span>")
     + "</h2>");
   const meta = [];
-  if (etat.tous && (ef.collaborateur || ef.projet || ef.service)) meta.push("<b>Tous les groupements</b>");
-  if (ef.collaborateur){
+  if (etat.projetSeul){
+    const a = etat.infosProjet;
+    meta.push("<b>Projet complet : toutes ses actions et tâches, sans filtre</b>");
+    if (a){
+      if (a.nature) meta.push("Nature : <b>" + echapper(a.nature) + "</b>");
+      if (a.porteur) meta.push("Porteur : <b>" + echapper(a.porteur) + "</b>");
+      if (a.groupement) meta.push("Groupement : <b>" + echapper(a.groupement) + "</b>");
+      if (a.millesime) meta.push("P2A : <b>" + echapper(a.millesime) + "</b>");
+      if (a.origine) meta.push("Origine : <b>" + echapper(a.origine) + "</b>");
+      if (a.echeance) meta.push("Échéance : <b>" + echapper(a.echeance) + "</b>");
+      meta.push("Avancement : " + pastille(a));
+    }
+  }
+  if (!etat.projetSeul && etat.tous && (ef.collaborateur || ef.projet || ef.service)) meta.push("<b>Tous les groupements</b>");
+  if (ef.collaborateur && !etat.projetSeul){
     const infos = infosCollaborateur(ef.collaborateur);
     if (etat.titre !== ef.collaborateur) meta.push("Collaborateur : <b>" + echapper(ef.collaborateur) + "</b>");
     if (infos.fonction) meta.push("Fonction : <b>" + echapper(infos.fonction) + "</b>");
@@ -1227,7 +1276,7 @@ function etatHtml(etat, pourImpression){
   }
   if (ef.service && etat.titre !== ef.service) meta.push("Service : <b>" + echapper(ef.service) + "</b>");
   if (ef.projet && etat.titre !== ef.projet) meta.push("Projet : <b>" + echapper(ef.projet) + "</b>");
-  if (ef.origine) meta.push("Origine : <b>" + echapper(libelleFiltreOrigine(ef.origine)) + "</b>");
+  if (ef.origine && !etat.projetSeul) meta.push("Origine : <b>" + echapper(libelleFiltreOrigine(ef.origine)) + "</b>");
   if (etat.chef) meta.push("Chef de groupement : <b>" + echapper(etat.chef) + "</b>");
   if (etat.sousDirection) meta.push("Sous-direction : <b>" + echapper(etat.sousDirection) + "</b>");
   if (etat.sponsor) meta.push("Sponsor CODIR : <b>" + echapper(etat.sponsor) + "</b>");
@@ -1325,7 +1374,20 @@ let groupementCourant = null;
 function afficher(){
   const zone = document.getElementById("contenu");
   if (!D.pretes){ zone.innerHTML = '<div class="vide-etat">Chargement des données…</div>'; return; }
+  const seul = projetSeulActif();
+  ["selGroupement", "recherche", "selCollaborateur", "selService", "selModeCollab", "selPerimetre",
+   "selOrigine", "chkTermine", "chkInterrompu"].forEach(id => { document.getElementById(id).disabled = !!seul; });
   if (vue === "sponsor"){ afficherSponsor(); return; }
+  if (seul){
+    const etatSeul = construireEtat(groupementCourant || TOUS);
+    majProjets(etatSeul);
+    zone.innerHTML =
+      '<div class="entete-impression"><div class="t">Projet — ' + echapper(seul)
+      + '</div><div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
+      + '<div class="section-impression">' + etatHtml(etatSeul, false) + "</div>";
+    brancherReplis();
+    return;
+  }
   if (!groupementCourant){ zone.innerHTML = '<div class="vide-etat">Choisissez un groupement.</div>'; return; }
   document.getElementById("selPerimetre").disabled = groupementCourant === TOUS;
   let etat = construireEtat(groupementCourant);
@@ -1367,7 +1429,7 @@ function remplirListe(sel, valeurs, affichage){
 }
 
 function majProjets(etat){
-  const liste = etat.projetsDisponibles.slice().sort((a, b) => a.localeCompare(b, "fr"));
+  const liste = tousLesProjets();
   const dl = document.getElementById("listeProjets");
   const html = liste.map(n => '<option value="' + echapper(n) + '"></option>').join("");
   if (dl.innerHTML !== html) dl.innerHTML = html;
@@ -1407,7 +1469,7 @@ function imprimerTous(){
   const TG = reglages.tGroupement;
   const codes = ctxDe(TG).lignes.map(l => texte(TG, l, "Groupement")).filter(Boolean);
   const morceaux = codes.map(code => {
-    const e = construireEtat(code);
+    const e = construireEtat(code, true);
     return e ? '<div class="section-impression">' + etatHtml(e, true) + "</div>" : "";
   });
   zone.innerHTML =
@@ -1648,7 +1710,7 @@ async function exporterExcel(tousLesGroupements){
     } else if (tousLesGroupements){
       const TG = reglages.tGroupement;
       const codes = ctxDe(TG).lignes.map(l => texte(TG, l, "Groupement")).filter(Boolean);
-      const etats = codes.map(construireEtat).filter(Boolean);
+      const etats = codes.map(c => construireEtat(c, true)).filter(Boolean);
       ajouterFeuilleRecap(wb, etats);
       etats.forEach(e => ajouterFeuilleGroupement(wb, e, prises));
       telecharger(await wb.xlsx.writeBuffer(), "etat_par_groupement_tous.xlsx");
