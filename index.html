@@ -2307,10 +2307,9 @@ function etatSponsorHtml(etat){
   if (etat.groupes.length) h.push('<div class="titre-partie">Détail des projets</div>');
   etat.groupes.forEach(g => {
     const n = g.projets.length;
-    const moy = n ? Math.round(g.projets.reduce((s, p) => s + p.a.pourcent, 0) / n) : 0;
     const sponsors = etat.tous ? Array.from(new Set(g.projets.map(p => p.sponsor).filter(Boolean))) : [];
     h.push('<div class="bandeau"><span class="nom">' + echapper(grpAvecCode(g.libelle, g.code)) + '</span><span class="info">'
-      + n + " projet" + (n > 1 ? "s" : "") + " · " + moy + " % moyen"
+      + n + " projet" + (n > 1 ? "s" : "")
       + (sponsors.length ? " · Sponsor : " + echapper(sponsors.join(", ")) : "") + "</span></div>");
     h.push('<table class="tab plat">' + enteteTableau("Projet", true, false, false) + "<tbody>");
     g.projets.forEach(p => h.push(ligneTableau({ libelleHtml: echapper(p.a.cleProjet), o: p.a,
