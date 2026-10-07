@@ -1250,7 +1250,7 @@ function etatHtml(etat, pourImpression){
     return h.join("");
   }
 
-  h.push(blocsHtml(etat, "groupement"));
+  h.push(compteursHtml(etat, "groupement"));
   h.push("</div>");
 
   /* Détail par porteur du projet. */
@@ -1632,7 +1632,7 @@ async function exporterExcel(tousLesGroupements){
 
     if (vue === "sponsor"){
       if (tousLesGroupements){
-        const etats = listeSponsors().map(construireEtatSponsor);
+        const etats = etatsSponsorsNonVides();
         ajouterFeuilleIndicateurs(wb, etats, prises);
         ajouterFeuilleRecapSponsor(wb, etats);
         etats.forEach(e => ajouterFeuilleSponsor(wb, e, prises));
@@ -1946,22 +1946,22 @@ const COMPTEURS_SYSTEME = {
   sponsor: {
     projets:  { libelle: "projets PEPS / AV", bloc: "volume" },
     pepsav:   { libelle: "dont PEPS / AV", bloc: "volume" },
-    moyenne:  { libelle: "avancement moyen", bloc: "avancement" },
     depasses: { libelle: "échéances dépassées", bloc: "echeances" },
     mec:      { libelle: "MEC 2023", bloc: "volume" },
     pap:      { libelle: "PAPRIPACT", bloc: "volume" },
     p2a:      { libelle: "inscrits au P2A", bloc: "p2a" }
   },
+  /* Les compteurs marqués « masque » existent mais ne s'affichent pas par défaut. */
   groupement: {
-    projets:  { libelle: "projets PEPS / AV", bloc: "volume" },
-    pepsav:   { libelle: "répartition PEPS / AV", bloc: "volume" },
+    projets:  { libelle: "projets rattachés", bloc: "volume" },
     actions:  { libelle: "actions MEO", bloc: "volume" },
     taches:   { libelle: "tâches", bloc: "volume" },
     mec:      { libelle: "MEC 2023", bloc: "volume" },
     pap:      { libelle: "PAPRIPACT", bloc: "volume" },
-    p2a:      { libelle: "inscrits au P2A", bloc: "p2a" },
-    moyenne:  { libelle: "avancement moyen des projets", bloc: "avancement" },
-    depasses: { libelle: "échéances dépassées (tous niveaux)", bloc: "echeances" }
+    pepsav:   { libelle: "dont PEPS / AV", bloc: "volume", masque: true },
+    p2a:      { libelle: "inscrits au P2A", bloc: "p2a", masque: true },
+    moyenne:  { libelle: "avancement moyen des projets", bloc: "avancement", masque: true },
+    depasses: { libelle: "échéances dépassées (tous niveaux)", bloc: "echeances", masque: true }
   }
 };
 
@@ -1988,7 +1988,7 @@ function nouveauCompteur(){
 function cleConfig(v){ return v === "sponsor" ? "compteursSponsor" : "compteursGroupement"; }
 
 function compteursDefaut(v){
-  return Object.keys(COMPTEURS_SYSTEME[v]).map(cle => ({ type: "sys", cle, visible: true }));
+  return Object.keys(COMPTEURS_SYSTEME[v]).map(cle => ({ type: "sys", cle, visible: !COMPTEURS_SYSTEME[v][cle].masque }));
 }
 
 /* Configuration enregistrée, complétée des compteurs standards qui n'y figurent pas encore. */
@@ -1998,7 +1998,7 @@ function compteursConfig(v){
   const sys = COMPTEURS_SYSTEME[v];
   const res = c.filter(x => x.type !== "sys" || sys[x.cle]);
   Object.keys(sys).forEach(cle => {
-    if (!res.some(x => x.type === "sys" && x.cle === cle)) res.push({ type: "sys", cle, visible: true });
+    if (!res.some(x => x.type === "sys" && x.cle === cle)) res.push({ type: "sys", cle, visible: !sys[cle].masque });
   });
   return res;
 }
@@ -2189,7 +2189,8 @@ function compteursHtml(etat, v){
       + echapper(x.compact || x.texte) + '</div><div class="l">' + echapper(x.libelle) + "</div></div>"));
     h.push("</div>");
   }
-  const c = etat.compte, total = c.projets;
+  const c = etat.compte;
+  const total = v === "sponsor" ? c.projets : c.projets + c.actions + c.taches + c.mec + c.papripact;
   if (total){
     const ordre = ["À engager", "En cours", "Terminé", "Interrompu"];
     const couleurs = { "À engager": "#C0504D", "En cours": "#F79646", "Terminé": "#9BBB59", "Interrompu": "#4A4A4A" };
@@ -2334,11 +2335,19 @@ function afficherSponsor(){
     + '<div class="section-impression">' + etatSponsorHtml(etat) + "</div>";
 }
 
+/* Un sponsor sans aucune ligne après filtres n'est pas édité. */
+function etatSponsorVide(e){
+  return !e.compte.projets && !e.mec.length && !e.papripact.length;
+}
+function etatsSponsorsNonVides(){
+  return listeSponsors().map(construireEtatSponsor).filter(e => !etatSponsorVide(e));
+}
+
 function imprimerTousSponsors(){
   const zone = document.getElementById("contenu");
   const sauvegarde = zone.innerHTML;
-  const morceaux = listeSponsors().map(sp =>
-    '<div class="section-impression">' + etatSponsorHtml(construireEtatSponsor(sp)) + "</div>");
+  const morceaux = etatsSponsorsNonVides().map(e =>
+    '<div class="section-impression">' + etatSponsorHtml(e) + "</div>");
   zone.innerHTML =
     '<div class="entete-impression"><div class="t">État par sponsor CODIR — tous les sponsors</div>'
     + '<div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div>"
