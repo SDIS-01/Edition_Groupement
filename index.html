@@ -170,6 +170,13 @@
   .w-service{width:112px;}
   .tab td.col-service{white-space:normal;overflow-wrap:anywhere;} .w-echeance{width:76px;} .w-avct{width:80px;} .w-cat{width:130px;}
   .w-nb{width:74px;} .w-grp{width:90px;}
+  /* PAPRIPACT : largeurs en % pour tenir à l'écran comme sur A4 portrait (le libellé garde 28 %). */
+  .tab.pap th:nth-child(1){width:28%;} .tab.pap th:nth-child(2){width:11%;} .tab.pap th:nth-child(3){width:13%;}
+  .tab.pap th:nth-child(4){width:9%;}  .tab.pap th:nth-child(5){width:9%;}  .tab.pap th:nth-child(6){width:9%;}
+  .tab.pap th:nth-child(7){width:11%;} .tab.pap th:nth-child(8){width:10%;}
+  .tab.pap td.lib{white-space:normal;word-break:normal;overflow-wrap:break-word;}
+  /* Texte long : retour à la ligne entre les mots, jamais au milieu d'un mot */
+  .tab td.txt{white-space:normal;overflow:visible;word-break:normal;overflow-wrap:normal;hyphens:none;}
   .bandeau{display:flex;align-items:baseline;gap:10px;background:var(--bleu-clair);border-left:4px solid var(--liseret);
     padding:5px 9px;margin:14px 0 0;}
   .bandeau .nom{font-weight:bold;color:var(--bleu-fonce);font-size:12.5px;}
@@ -2501,10 +2508,10 @@ function enteteTableau(premiere, avecPorteur, avecService, annexe, sansEcheance)
 /* Annexes MEC 2023 / PAPRIPACT : objets lus par lireAnnexe. */
 /* PAPRIPACT : Libellé | Origine | Famille | Service | Groupement | Échéance | Statut | Avancement. */
 function tableauPapripact(lignes){
-  const h = ['<table class="tab plat"><thead><tr><th>Libellé</th>'
-    + '<th class="c w-p2a">Origine</th><th class="c w-cat">Famille</th>'
+  const h = ['<table class="tab plat pap"><thead><tr><th>Libellé</th>'
+    + '<th class="c w-pap-or">Origine</th><th class="c w-pap-fam">Famille</th>'
     + '<th class="c w-service col-service">Service</th><th class="c w-grp">Groupement</th>'
-    + '<th class="c w-echeance col-echeance">Échéance</th><th class="c w-cat">Statut</th>'
+    + '<th class="c w-echeance col-echeance">Échéance</th><th class="c w-pap-st">Statut</th>'
     + '<th class="c w-avct">Avct</th></tr></thead><tbody>'];
   lignes.forEach(o => {
     const c = couleurAvancement(o.pourcent, o.interrompu);
@@ -2512,12 +2519,12 @@ function tableauPapripact(lignes){
       ? '<span class="pastille' + (c.clair ? " claire" : "") + '" style="background:' + c.fond + '">' + echapper(o.avctTexte) + "</span>"
       : pastille(o);
     h.push('<tr><td class="lib">' + echapper(o.libelle) + "</td>"
-      + '<td class="c">' + echapper(o.origineAnnexe || "") + "</td>"
-      + '<td class="c">' + echapper(o.famille || "") + "</td>"
-      + '<td class="c col-service">' + echapper(o.service || "") + "</td>"
-      + '<td class="c">' + echapper(o.groupement || "") + "</td>"
+      + '<td class="c txt">' + echapper(o.origineAnnexe || "") + "</td>"
+      + '<td class="c txt">' + echapper(o.famille || "") + "</td>"
+      + '<td class="c txt col-service">' + echapper(o.service || "") + "</td>"
+      + '<td class="c txt">' + echapper(o.groupement || "") + "</td>"
       + celluleEcheance(o)
-      + '<td class="c">' + echapper(o.statutTexte || "") + "</td>"
+      + '<td class="c txt">' + echapper(o.statutTexte || "") + "</td>"
       + '<td class="c">' + av + "</td></tr>");
   });
   h.push("</tbody></table>");
