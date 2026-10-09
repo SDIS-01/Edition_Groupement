@@ -2803,13 +2803,13 @@ function imprimerTousSponsors(){
   const etats = etatsSponsorsNonVides();
   const morceaux = etats
     .filter(e => e.compte.projets || e.mec.length || e.papripact.length)
-    .map(e => '<div class="section-impression">' + etatSponsorHtml(e, true) + "</div>");
+    .map(e => '<div class="section-impression">' + etatSponsorHtml(Object.assign(e, { avecRappel: true }), true) + "</div>");
   const clos = grouperClos(etats.reduce((acc, e) => acc.concat(e.closListe), []));
   if (clos.length) morceaux.push('<div class="section-impression">' + closHtml(clos) + "</div>");
   zone.innerHTML =
     '<div class="entete-impression">' + LOGO_HTML + '<div class="txt-ent"><div class="t">État par sponsor CODIR — tous les sponsors</div>'
     + '<div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div></div>"
-    + rappelHtml("sponsor") + morceaux.join("");
+    + morceaux.join("");
   window.print();
   setTimeout(() => { zone.innerHTML = sauvegarde; }, 800);
 }
