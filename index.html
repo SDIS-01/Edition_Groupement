@@ -300,6 +300,13 @@
       <datalist id="listeProjets"></datalist>
     </div>
     <div class="champ seul-grp">
+      <span>Détail</span>
+      <select id="selDetail">
+        <option value="complet">Complet : projets, actions MEO, tâches</option>
+        <option value="projets">Projets seuls : portés et impactant le groupement</option>
+      </select>
+    </div>
+    <div class="champ seul-grp">
       <span>Périmètre</span>
       <select id="selPerimetre">
         <option value="portage">Projets portés par le groupement</option>
@@ -1154,6 +1161,27 @@ function construireEtat(code, sansProjetSeul){
     p.actions.forEach(a => a.taches.sort(triTaches));
   });
 
+  /* Détail « projets seuls » : projets portés par le groupement (ligne projet rattachée)
+     et projets qui l'impactent (rattachés par une action MEO ou une tâche), sans leurs lignes filles. */
+  let projetsSeuls = null;
+  if (f.detail === "projets" && !seul){
+    const portes = [], impactes = [];
+    projetsFinaux.forEach(p => {
+      let a = p.noeud.a;
+      if (!a){
+        const l = ctxA.lignes.find(x => texte(TA, x, "Nature").toUpperCase() !== "MEO"
+          && texte(TA, x, "ID_Projet_Action_AV") === p.noeud.cle);
+        if (l) a = lireAction(l);
+      }
+      if (!a || !garderStatut(a)) return;
+      const el = { noeud: Object.assign({}, p.noeud, { a }), direct: true, actions: [], taches: [] };
+      (p.noeud.direct ? portes : impactes).push(el);
+    });
+    projetsFinaux.length = 0;
+    portes.concat(impactes).forEach(x => projetsFinaux.push(x));
+    projetsSeuls = { portes, impactes };
+  }
+
   /* MEC 2023, PAPRIPACT et lignes sans projet ne sont rattachés à aucun projet :
      ils disparaissent quand un projet est sélectionné. */
   const garderAnnexe = o => !f.projet
@@ -1161,7 +1189,7 @@ function construireEtat(code, sansProjetSeul){
   const mecFinal = mecBrut.filter(garderAnnexe);
   const papFinal = papBrut.filter(garderAnnexe);
   /* Lignes sans projet : filtrées sur leur propre origine (une tâche n'en a pas). */
-  const orphelinsFinaux = orphelins.filter(x => garderAnnexe(Object.assign({}, x.o, { libelle: x.libelle }))
+  const orphelinsFinaux = projetsSeuls ? [] : orphelins.filter(x => garderAnnexe(Object.assign({}, x.o, { libelle: x.libelle }))
     && garderOrigine(x.type === "action" && x.o ? x.o.origine : "", f.origine));
   mecFinal.sort((x, y) =>
     (x.categorie || "").localeCompare(y.categorie || "", "fr") || x.libelle.localeCompare(y.libelle, "fr"));
@@ -1218,6 +1246,7 @@ function construireEtat(code, sansProjetSeul){
     sponsor: tous ? "" : texte(TG, ligneG, "Sponsor_CODIR"),
     parListes: rat.parListes,
     projets: projetsFinaux,
+    projetsSeuls,
     orphelins: orphelinsFinaux,
     mec: mecFinal,
     papripact: papFinal,
@@ -1239,7 +1268,10 @@ function lireFiltres(){
     modeCollab: document.getElementById("selModeCollab").value,
     projet: document.getElementById("selProjet").value,
     service: document.getElementById("selService").value,
-    perimetre: document.getElementById("selPerimetre").value,
+    detail: document.getElementById("selDetail").value,
+    /* Projets seuls : il faut tout ce qui implique le groupement pour trouver les projets impactants. */
+    perimetre: document.getElementById("selDetail").value === "projets" ? "implication"
+      : document.getElementById("selPerimetre").value,
     termine: document.getElementById("chkTermine").checked,
     interrompu: document.getElementById("chkInterrompu").checked,
     grpSponsor: document.getElementById("selGrpSponsor").value,
@@ -1348,6 +1380,44 @@ function sectionAnnexe(titre, lignes, grouperParCategorie){
   return h.join("");
 }
 
+/* Détail « projets seuls » : deux parties, chacune classée par porteur du projet. */
+function projetsSeulsHtml(ps){
+  const h = [];
+  const partie = (titre, liste, impact) => {
+    if (!liste.length) return;
+    h.push('<div class="titre-partie">' + titre + " (" + liste.length + ")</div>");
+    const parPorteur = new Map();
+    liste.forEach(p => {
+      const po = txt(p.noeud.a.porteur) || SANS_PORTEUR;
+      if (!parPorteur.has(po)) parPorteur.set(po, []);
+      parPorteur.get(po).push(p);
+    });
+    Array.from(parPorteur.keys()).sort((a, b) => {
+      if (a === SANS_PORTEUR) return 1;
+      if (b === SANS_PORTEUR) return -1;
+      return a.localeCompare(b, "fr");
+    }).forEach(po => {
+      const l = parPorteur.get(po);
+      h.push('<div class="bandeau"><span class="nom">' + echapper(po) + '</span><span class="info">'
+        + l.length + " projet" + (l.length > 1 ? "s" : "") + "</span></div>");
+      h.push('<table class="tab plat">' + enteteTableau("Projet", false, true, false, false, impact) + "<tbody>");
+      l.forEach(p => {
+        const a = p.noeud.a;
+        const opts = { libelleHtml: echapper(p.noeud.cle), o: a, nature: a.nature, millesime: a.millesime,
+          origine: a.origine, avecService: true };
+        if (impact) opts.grpPorteur = a.groupement || "";
+        h.push(ligneTableau(opts));
+        h.push(ligneInstances(p.noeud.cle, impact ? 8 : 7));
+      });
+      h.push("</tbody></table>");
+    });
+  };
+  partie("Projets portés par le groupement", ps.portes, false);
+  partie("Projets impactant le groupement", ps.impactes, true);
+  if (!ps.portes.length && !ps.impactes.length) h.push('<div class="vide-etat">Aucun projet ne correspond à la sélection.</div>');
+  return h.join("");
+}
+
 function etatHtml(etat, pourImpression){
   const f = lireFiltres();
   const ef = etat.filtres || f;
@@ -1384,9 +1454,10 @@ function etatHtml(etat, pourImpression){
   if (etat.chef) meta.push("Chef de groupement : <b>" + echapper(etat.chef) + "</b>");
   if (etat.sousDirection) meta.push("Sous-direction : <b>" + echapper(etat.sousDirection) + "</b>");
   if (etat.sponsor) meta.push("Sponsor CODIR : <b>" + echapper(etat.sponsor) + "</b>");
+  if (etat.projetsSeuls) meta.push("Détail : <b>projets seuls, sans actions MEO ni tâches</b>");
   if (meta.length) h.push('<div class="meta">' + meta.join(" &nbsp;·&nbsp; ") + "</div>");
   h.push("</div>");
-  if (etat.avecRappel) h.push(rappelHtml("groupement"));
+  if (etat.avecRappel) h.push(rappelHtml(document.getElementById("selDetail").value === "projets" ? "sponsor" : "groupement"));
 
   if (D.absentes.length){
     h.push('<div class="avertissement">Table introuvable : ' + echapper(D.absentes.join(", "))
@@ -1406,6 +1477,12 @@ function etatHtml(etat, pourImpression){
 
   h.push(compteursHtml(etat, "groupement"));
   h.push("</div>");
+
+  if (etat.projetsSeuls){
+    h.push(projetsSeulsHtml(etat.projetsSeuls));
+    h.push(annexesHtml(etat.mec, etat.papripact));
+    return h.join("");
+  }
 
   /* Détail par porteur du projet. */
   const parPorteur = new Map();
@@ -1495,7 +1572,8 @@ function afficher(){
     return;
   }
   if (!groupementCourant){ zone.innerHTML = '<div class="vide-etat">Choisissez un groupement.</div>'; return; }
-  document.getElementById("selPerimetre").disabled = groupementCourant === TOUS;
+  document.getElementById("selPerimetre").disabled = groupementCourant === TOUS
+    || document.getElementById("selDetail").value === "projets";
   let etat = construireEtat(groupementCourant);
   if (!etat){ zone.innerHTML = '<div class="vide-etat">Groupement introuvable.</div>'; return; }
   /* Mise à jour des listes ; si une sélection n'existe plus dans le nouveau périmètre,
@@ -1581,7 +1659,7 @@ function imprimerTous(){
   zone.innerHTML =
     '<div class="entete-impression">' + LOGO_HTML + '<div class="txt-ent"><div class="t">État par groupement — tous les groupements</div>'
     + '<div class="d">Édité le ' + new Date().toLocaleDateString("fr-FR") + "</div></div></div>"
-    + rappelHtml("groupement") + morceaux.join("");
+    + rappelHtml(document.getElementById("selDetail").value === "projets" ? "sponsor" : "groupement") + morceaux.join("");
   window.print();
   setTimeout(() => { zone.innerHTML = sauvegarde; brancherReplis(); }, 800);
 }
@@ -2317,8 +2395,12 @@ function valeursEntete(etat, v){
           return { bloc: d.bloc, libelle: d.libelle, court: "", texte: t, nombre: null, pourcent: null, brut: t,
             compact: pops.PEPS.length + " / " + pops.AV.length };
         }
-        case "actions": return nb(pops.actions.length, "actions MEO");
-        case "taches":  return nb(pops.taches.length, "tâches");
+        case "actions": return etat.projetsSeuls
+          ? Object.assign(nb(etat.projetsSeuls.portes.length, "portés"), { libelle: "projets portés par le groupement" })
+          : nb(pops.actions.length, "actions MEO");
+        case "taches":  return etat.projetsSeuls
+          ? Object.assign(nb(etat.projetsSeuls.impactes.length, "impactant"), { libelle: "projets impactant le groupement" })
+          : nb(pops.taches.length, "tâches");
         case "mec":     return nb(pops.mec.length, "MEC 2023");
         case "pap":     return nb(pops.pap.length, "PAPRIPACT");
         case "p2a": {
@@ -2492,6 +2574,7 @@ function ligneTableau(opts){
       ? '<span class="pastille-p2a">' + echapper(opts.millesime) + "</span>" : "") + "</td>");
     h.push('<td class="c col-origine">' + (opts.origine ? pastilleOrigine(opts.origine) : "") + "</td>");
   }
+  if (opts.grpPorteur !== undefined) h.push('<td class="c txt">' + echapper(opts.grpPorteur) + "</td>");
   if (opts.avecPorteur) h.push('<td class="c col-porteur">' + echapper(o ? o.porteur : "") + "</td>");
   if (opts.avecService) h.push('<td class="c col-service">' + echapper(o ? o.service : "") + "</td>");
   if (!opts.sansEcheance) h.push(celluleEcheance(o));
@@ -2500,10 +2583,11 @@ function ligneTableau(opts){
   return h.join("");
 }
 
-function enteteTableau(premiere, avecPorteur, avecService, annexe, sansEcheance){
+function enteteTableau(premiere, avecPorteur, avecService, annexe, sansEcheance, avecGrpPorteur){
   const h = ['<thead><tr><th>' + echapper(premiere) + "</th>"];
   if (annexe) h.push('<th class="w-cat">Catégorie</th>');
   else h.push('<th class="c w-nat col-nat">Nat.</th><th class="c w-p2a col-p2a">P2A</th><th class="c w-origine col-origine">Origine</th>');
+  if (avecGrpPorteur) h.push('<th class="c w-grp">Groupement porteur</th>');
   if (avecPorteur) h.push('<th class="c w-porteur col-porteur">Porteur</th>');
   if (avecService) h.push('<th class="c w-service col-service">Service</th>');
   if (!sansEcheance) h.push('<th class="c w-echeance col-echeance">Échéance</th>');
@@ -2977,7 +3061,7 @@ function brancherInterface(){
   document.getElementById("vueGroupement").addEventListener("click", () => changerVue("groupement"));
   document.getElementById("vueSponsor").addEventListener("click", () => changerVue("sponsor"));
   ["recherche", "selCollaborateur", "selService", "selModeCollab", "selProjet", "selPerimetre",
-   "chkTermine", "chkInterrompu", "selGrpSponsor", "selOrigine", "chkInstances", "chkRappel"].forEach(id => {
+   "chkTermine", "chkInterrompu", "selGrpSponsor", "selOrigine", "chkInstances", "chkRappel", "selDetail"].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener(el.type === "search" ? "input" : "change", afficher);
   });
