@@ -2919,7 +2919,8 @@ function remplirGroupements(){
     '<option value="' + echapper(x.code) + '">' + echapper(x.libelle || x.code)
     + " (" + echapper(x.code) + ")</option>").join("");
   if (groupementCourant !== TOUS && !items.some(x => x.code === groupementCourant)){
-    groupementCourant = items.length ? items[0].code : TOUS;
+    /* Au chargement (ou si le groupement choisi a disparu) : tous les groupements. */
+    groupementCourant = TOUS;
   }
   if (groupementCourant) sel.value = groupementCourant;
 }
