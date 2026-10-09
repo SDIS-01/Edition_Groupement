@@ -1526,7 +1526,7 @@ function etatHtml(etat, pourImpression){
       p.actions.forEach(x => {
         const aa = x.noeud.a;
         h.push(ligneTableau({ classe: "ac", libelleHtml: echapper(x.noeud.cle), o: x.direct ? aa : null,
-          nature: aa ? aa.nature : "MEO", millesime: aa ? aa.millesime : "", origine: aa ? aa.origine : "", avecService: true }));
+          nature: aa ? aa.nature : "MEO", millesime: aa ? aa.millesime : "", origine: "", avecService: true }));
         x.taches.forEach(t => h.push(ligneTableau({ classe: "ta", libelleHtml: echapper(t.libelle), o: t, avecService: true })));
       });
       p.taches.forEach(t => h.push(ligneTableau({ classe: "ta", libelleHtml: echapper(t.libelle), o: t, avecService: true })));
@@ -1542,7 +1542,7 @@ function etatHtml(etat, pourImpression){
       const act = x.type === "action";
       h.push(ligneTableau({ classe: act ? "" : "", libelleHtml: echapper(x.libelle), o: x.o,
         nature: act && x.o ? x.o.nature : "", millesime: act && x.o ? x.o.millesime : "",
-        origine: act && x.o ? x.o.origine : "", avecService: true }));
+        origine: "", avecService: true }));
     });
     h.push("</tbody></table>");
   }
@@ -1699,7 +1699,7 @@ function aplatir(etat){
     p.actions.forEach(a => {
       lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "action",
         projet: p.noeud.cle, action: a.noeud.cle, tache: "", o: a.direct ? a.noeud.a : null,
-        millesime: a.noeud.a ? a.noeud.a.millesime : "", origine: a.noeud.a ? a.noeud.a.origine : "" });
+        millesime: a.noeud.a ? a.noeud.a.millesime : "", origine: "" });
       a.taches.forEach(t => lignes.push({ famille: "Projet_Action", categorie: grp, niveau: "tache",
         projet: p.noeud.cle, action: a.noeud.cle, tache: t.libelle, o: t }));
     });
@@ -1712,7 +1712,7 @@ function aplatir(etat){
     projet: "", action: x.type === "action" ? x.libelle : "",
     tache: x.type === "action" ? "" : x.libelle, o: x.o,
     millesime: x.type === "action" && x.o ? x.o.millesime : "",
-    origine: x.type === "action" && x.o ? x.o.origine : "" }));
+    origine: "" }));
   etat.mec.forEach(o => lignes.push({ famille: "MEC 2023", categorie: o.categorie || "",
     niveau: "annexe", projet: o.libelle, action: "", tache: "", o }));
   etat.papripact.forEach(o => lignes.push({ famille: "PAPRIPACT", categorie: "Action_DUERP",
