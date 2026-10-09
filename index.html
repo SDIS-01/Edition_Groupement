@@ -2111,8 +2111,24 @@ function construireEtatSponsor(sponsor){
   });
   const triAnnexe = (x, y) => (x.a.categorie || "").localeCompare(y.a.categorie || "", "fr")
     || x.a.libelle.localeCompare(y.a.libelle, "fr", { numeric: true });
-  const mec = annexes.filter(p => p.famille === "MEC 2023").sort(triAnnexe);
-  const papripact = annexes.filter(p => p.famille === "PAPRIPACT").sort(triAnnexe);
+  /* Groupements de chaque ligne chez ce sponsor (une ligne peut relever de plusieurs groupements). */
+  const grpsParLigne = new Map();
+  annexesFiltrees.forEach(p => {
+    const cle = p.famille + "|" + p.a.id;
+    if (!grpsParLigne.has(cle)) grpsParLigne.set(cle, []);
+    const g = p.grpCode || p.grpLibelle || "";
+    if (g && !grpsParLigne.get(cle).includes(g)) grpsParLigne.get(cle).push(g);
+  });
+  annexes.forEach(p => {
+    p.grpAff = (grpsParLigne.get(p.famille + "|" + p.a.id) || []).sort((a, b) => a.localeCompare(b, "fr")).join(", ");
+  });
+  /* Tri par groupement, puis comme avant (catégorie, libellé). Sans groupement : en fin. */
+  const triGrp = (x, y) => {
+    if (!x.grpAff !== !y.grpAff) return x.grpAff ? -1 : 1;
+    return x.grpAff.localeCompare(y.grpAff, "fr") || triAnnexe(x, y);
+  };
+  const mec = annexes.filter(p => p.famille === "MEC 2023").sort(triGrp);
+  const papripact = annexes.filter(p => p.famille === "PAPRIPACT").sort(triGrp);
 
   /* Regroupement par groupement porteur. */
   const parGroupement = new Map();
@@ -2577,19 +2593,21 @@ function ligneTableau(opts){
   if (opts.grpPorteur !== undefined) h.push('<td class="c txt">' + echapper(opts.grpPorteur) + "</td>");
   if (opts.avecPorteur) h.push('<td class="c col-porteur">' + echapper(o ? o.porteur : "") + "</td>");
   if (opts.avecService) h.push('<td class="c col-service">' + echapper(o ? o.service : "") + "</td>");
+  if (opts.grpAnnexe !== undefined) h.push('<td class="c txt">' + coupable(opts.grpAnnexe) + "</td>");
   if (!opts.sansEcheance) h.push(celluleEcheance(o));
   h.push('<td class="c">' + (o ? pastille(o) : "") + "</td>");
   h.push("</tr>");
   return h.join("");
 }
 
-function enteteTableau(premiere, avecPorteur, avecService, annexe, sansEcheance, avecGrpPorteur){
+function enteteTableau(premiere, avecPorteur, avecService, annexe, sansEcheance, avecGrpPorteur, avecGrpAnnexe){
   const h = ['<thead><tr><th>' + echapper(premiere) + "</th>"];
   if (annexe) h.push('<th class="w-cat">Catégorie</th>');
   else h.push('<th class="c w-nat col-nat">Nat.</th><th class="c w-p2a col-p2a">P2A</th><th class="c w-origine col-origine">Origine</th>');
   if (avecGrpPorteur) h.push('<th class="c w-grp">Groupement porteur</th>');
   if (avecPorteur) h.push('<th class="c w-porteur col-porteur">Porteur</th>');
   if (avecService) h.push('<th class="c w-service col-service">Service</th>');
+  if (avecGrpAnnexe) h.push('<th class="c w-grp">Groupement</th>');
   if (!sansEcheance) h.push('<th class="c w-echeance col-echeance">Échéance</th>');
   h.push('<th class="c w-avct">Avct</th></tr></thead>');
   return h.join("");
@@ -2624,7 +2642,7 @@ function tableauPapripact(lignes){
   return h.join("");
 }
 
-function annexesHtml(mec, pap){
+function annexesHtml(mec, pap, avecGroupement){
   if (!mec.length && !pap.length) return "";
   const h = ['<div class="annexes"><div class="titre-partie">Annexes</div>'];
   [["MEC 2023", mec], ["PAPRIPACT", pap]].forEach(([titre, lignes]) => {
@@ -2633,9 +2651,10 @@ function annexesHtml(mec, pap){
       + " ligne" + (lignes.length > 1 ? "s" : "") + "</span></div>");
     if (titre === "PAPRIPACT"){ h.push(tableauPapripact(lignes)); return; }
     const sansEch = titre === "MEC 2023";
-    h.push('<table class="tab plat">' + enteteTableau("Libellé", true, true, true, sansEch) + "<tbody>");
+    const grp = avecGroupement && titre === "MEC 2023";
+    h.push('<table class="tab plat">' + enteteTableau("Libellé", true, true, true, sansEch, false, grp) + "<tbody>");
     lignes.forEach(o => h.push(ligneTableau({ libelleHtml: echapper(o.libelle), o, categorie: o.categorie || "",
-      avecPorteur: true, avecService: true, sansEcheance: sansEch })));
+      avecPorteur: true, avecService: true, sansEcheance: sansEch, grpAnnexe: grp ? (o.groupement || "") : undefined })));
     h.push("</tbody></table>");
   });
   h.push("</div>");
@@ -2751,7 +2770,8 @@ function etatSponsorHtml(etat, sansClos){
     h.push("</tbody></table>");
   });
 
-  h.push(annexesHtml(etat.mec.map(p => p.a), etat.papripact.map(p => p.a)));
+  const avecGrp = p => Object.assign({}, p.a, { groupement: p.grpAff || p.a.groupement || "" });
+  h.push(annexesHtml(etat.mec.map(avecGrp), etat.papripact.map(avecGrp), true));
   if (!sansClos) h.push(closHtml(etat.clos));
   return h.join("");
 }
