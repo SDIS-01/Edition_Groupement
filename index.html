@@ -759,8 +759,19 @@ function lireTache(ligne){
 /* Lecture commune aux tables MEC 2023 et PAPRIPACT. */
 function lireAnnexe(tableId, ligne, facteur, clesLibelle){
   const ctx = ctxDe(tableId);
-  const brut = Number(ctx.brut(ligne, "Avancement"));
-  const pourcent = isNaN(brut) ? 0 : Math.round(brut * facteur);
+  const avBrut = ctx.brut(ligne, "Avancement");
+  const brut = Number(avBrut);
+  let pourcent = isNaN(brut) ? 0 : Math.round(brut * facteur);
+  /* Avancement saisi en texte (PAPRIPACT : « 0 % », « -50 % », « +50 % », « 100 % »). */
+  let avctTexte = "";
+  if (typeof avBrut === "string" && isNaN(brut)){
+    avctTexte = avBrut.trim();
+    const m = avctTexte.match(/([+-]?)\s*(\d+)/);
+    if (m){
+      const n = Number(m[2]);
+      pourcent = n >= 100 ? 100 : n === 0 ? 0 : m[1] === "-" ? Math.max(1, Math.round(n / 2)) : m[1] === "+" ? Math.min(99, n + 10) : n;
+    }
+  }
   const statutBrut = texte(tableId, ligne, "Statut");
   const interrompu = norm(statutBrut) === "interrompu"
     || rempli(ctx.brut(ligne, "Date_suspension", "Date_Suspension"))
@@ -776,10 +787,14 @@ function lireAnnexe(tableId, ligne, facteur, clesLibelle){
     categorie: texte(tableId, ligne, "Reccomandation_Rappel", "Recommandation_Rappel",
       "Action_DUERP", "Catégorie", "Categorie", "Type", "Nature"),
     porteur: texte(tableId, ligne, "Porteur"),
-    service: serviceReel(texte(tableId, ligne, "Service")),
-    groupement: texte(tableId, ligne, "Groupement"),
-    echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
-    echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Échéance")),
+    service: serviceReel(texte(tableId, ligne, "Service", "Service_Porteur")),
+    groupement: texte(tableId, ligne, "Groupement", "Groupement_Pilote"),
+    origineAnnexe: texte(tableId, ligne, "Origine"),
+    famille: texte(tableId, ligne, "Famille"),
+    statutTexte: statutBrut,
+    avctTexte,
+    echeance: formatDate(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Echéance", "Échéance")),
+    echeanceDate: dateDe(ctx.brut(ligne, "Ech_Prev", "Ech.prev", "Echeance", "Echéance", "Échéance")),
     statut: etatStatut(statutBrut, pourcent, interrompu),
     pourcent, interrompu
   };
@@ -871,7 +886,7 @@ function rattachements(ligneGroupement, code, libelleGroupement){
       if (memeGroupement(texte(reglages.tMec, l, "Groupement"))) mec.add(l.id);
     });
     ctxDe(reglages.tPapripact).lignes.forEach(l => {
-      if (memeGroupement(texte(reglages.tPapripact, l, "Groupement"))) papripact.add(l.id);
+      if (memeGroupement(texte(reglages.tPapripact, l, "Groupement", "Groupement_Pilote"))) papripact.add(l.id);
     });
   }
 
@@ -2484,6 +2499,31 @@ function enteteTableau(premiere, avecPorteur, avecService, annexe, sansEcheance)
 }
 
 /* Annexes MEC 2023 / PAPRIPACT : objets lus par lireAnnexe. */
+/* PAPRIPACT : Libellé | Origine | Famille | Service | Groupement | Échéance | Statut | Avancement. */
+function tableauPapripact(lignes){
+  const h = ['<table class="tab plat"><thead><tr><th>Libellé</th>'
+    + '<th class="c w-p2a">Origine</th><th class="c w-cat">Famille</th>'
+    + '<th class="c w-service col-service">Service</th><th class="c w-grp">Groupement</th>'
+    + '<th class="c w-echeance col-echeance">Échéance</th><th class="c w-cat">Statut</th>'
+    + '<th class="c w-avct">Avct</th></tr></thead><tbody>'];
+  lignes.forEach(o => {
+    const c = couleurAvancement(o.pourcent, o.interrompu);
+    const av = o.avctTexte
+      ? '<span class="pastille' + (c.clair ? " claire" : "") + '" style="background:' + c.fond + '">' + echapper(o.avctTexte) + "</span>"
+      : pastille(o);
+    h.push('<tr><td class="lib">' + echapper(o.libelle) + "</td>"
+      + '<td class="c">' + echapper(o.origineAnnexe || "") + "</td>"
+      + '<td class="c">' + echapper(o.famille || "") + "</td>"
+      + '<td class="c col-service">' + echapper(o.service || "") + "</td>"
+      + '<td class="c">' + echapper(o.groupement || "") + "</td>"
+      + celluleEcheance(o)
+      + '<td class="c">' + echapper(o.statutTexte || "") + "</td>"
+      + '<td class="c">' + av + "</td></tr>");
+  });
+  h.push("</tbody></table>");
+  return h.join("");
+}
+
 function annexesHtml(mec, pap){
   if (!mec.length && !pap.length) return "";
   const h = ['<div class="annexes"><div class="titre-partie">Annexes</div>'];
@@ -2491,6 +2531,7 @@ function annexesHtml(mec, pap){
     if (!lignes.length) return;
     h.push('<div class="bandeau"><span class="nom">' + titre + '</span><span class="info">' + lignes.length
       + " ligne" + (lignes.length > 1 ? "s" : "") + "</span></div>");
+    if (titre === "PAPRIPACT"){ h.push(tableauPapripact(lignes)); return; }
     const sansEch = titre === "MEC 2023";
     h.push('<table class="tab plat">' + enteteTableau("Libellé", true, true, true, sansEch) + "<tbody>");
     lignes.forEach(o => h.push(ligneTableau({ libelleHtml: echapper(o.libelle), o, categorie: o.categorie || "",
