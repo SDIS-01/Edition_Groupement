@@ -163,6 +163,9 @@
     font-size:11px;font-weight:bold;line-height:16px;}
   .tab tr.axe .axe-lib{font-weight:bold;}
   .tab tr.axe .axe-info{color:var(--attenue);}
+  .tab td.lib-tache{color:#6E6254;}
+  .tab td.lib-tache .tq{display:inline-block;width:38px;font-size:11px;vertical-align:top;}
+  .tab td.lib-tache .lt{display:inline-block;width:calc(100% - 44px);vertical-align:top;}
   .tab tr.ins td{background:#FCFAF7;padding:3px 6px 6px 18px;font-size:11px;color:var(--bleu-fonce);white-space:normal;}
   .tab tr.ins .ic{color:var(--liseret);margin-right:4px;}
   .tab tr.ins .sep{color:#C9BFB1;margin:0 6px;}
@@ -2599,9 +2602,17 @@ function celluleEcheance(o){
 function ligneTableau(opts){
   const o = opts.o;
   const h = ['<tr class="' + (opts.classe || "") + (o ? "" : " contexte") + '">'];
-  h.push('<td class="lib"' + (opts.liseret ? ' style="box-shadow:inset 3px 0 0 ' + opts.liseret + '"' : "")
-    + ">" + opts.libelleHtml + "</td>");
-  if (opts.categorie !== undefined) h.push('<td class="w-cat">' + echapper(opts.categorie) + "</td>");
+  const styleLiseret = opts.liseret ? ' style="box-shadow:inset 3px 0 0 ' + opts.liseret + '"' : "";
+  /* Tâche : le libellé s'étend sur les colonnes Nature, P2A et Origine (celles qui sont affichées),
+     précédé de « Tâche » ; texte en taupe foncé. */
+  if (opts.nature === "Tâche" && opts.categorie === undefined){
+    const visibles = ["nat", "p2a", "origine"]
+      .filter(c => !document.body.classList.contains("sans-col-" + c)).length;
+    h.push('<td class="lib lib-tache" colspan="' + (1 + visibles) + '"' + styleLiseret + '>'
+      + '<span class="tq">Tâche</span><span class="lt">' + opts.libelleHtml + "</span></td>");
+  } else h.push('<td class="lib"' + styleLiseret + ">" + opts.libelleHtml + "</td>");
+  if (opts.nature === "Tâche" && opts.categorie === undefined){ /* colonnes déjà couvertes */ }
+  else if (opts.categorie !== undefined) h.push('<td class="w-cat">' + echapper(opts.categorie) + "</td>");
   else {
     h.push('<td class="c col-nat">' + echapper(opts.nature || "") + "</td>");
     h.push('<td class="c col-p2a">' + (opts.millesime
@@ -3142,7 +3153,10 @@ function brancherEntete(){
   });
   /* Colonnes imprimées : masquage par classe sur le corps de page. */
   document.querySelectorAll("#choixColonnes input[data-col]").forEach(cb => {
-    cb.addEventListener("change", () => document.body.classList.toggle("sans-col-" + cb.getAttribute("data-col"), !cb.checked));
+    cb.addEventListener("change", () => {
+      document.body.classList.toggle("sans-col-" + cb.getAttribute("data-col"), !cb.checked);
+      afficher();
+    });
   });
 }
 
