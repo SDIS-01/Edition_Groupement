@@ -170,8 +170,9 @@
   .tab tr.ins .fut b{color:var(--bleu-fonce);}
   .tab tr.ins .fut .d{color:#C0504D;font-weight:normal;}
   .tab tr.ins .prog{font-style:italic;color:#A2551A;}
-  .w-nat{width:46px;} .w-p2a{width:72px;} .w-origine{width:110px;}
-  .tab td.col-p2a,.tab td.col-origine{overflow:visible;white-space:nowrap;} .w-porteur{width:112px;}
+  .w-nat{width:46px;} .w-p2a{width:72px;} .w-origine{width:78px;}
+  .tab td.col-p2a{overflow:visible;white-space:nowrap;}
+  .tab td.col-origine{white-space:normal;overflow:hidden;line-height:1.25;} .w-porteur{width:112px;}
   .w-service{width:112px;}
   .tab td.col-service{white-space:normal;overflow-wrap:anywhere;} .w-echeance{width:76px;} .w-avct{width:80px;} .w-cat{width:130px;}
   .w-nb{width:74px;} .w-grp{width:90px;}
@@ -1533,7 +1534,7 @@ function etatHtml(etat, pourImpression){
         const aa = x.noeud.a;
         h.push(ligneTableau({ classe: "ac", libelleHtml: echapper(x.noeud.cle), o: x.direct ? aa : null,
           nature: aa ? aa.nature : "MEO", millesime: aa ? aa.millesime : "", origine: "", avecService: true, liseret }));
-        x.taches.forEach(t => h.push(ligneTableau({ classe: "ta", libelleHtml: echapper(t.libelle), o: t,
+        x.taches.forEach(t => h.push(ligneTableau({ classe: "ta", libelleHtml: echapper(t.libelle), o: t, nature: "Tâche",
           avecService: true, liseret })));
       };
       const parAxe = groupesAxes(p.actions);
@@ -1542,7 +1543,7 @@ function etatHtml(etat, pourImpression){
         h.push(ligneAxe(g, 7));
         g.actions.forEach(x => ligneAction(x, g.couleur));
       });
-      p.taches.forEach(t => h.push(ligneTableau({ classe: "ta", libelleHtml: echapper(t.libelle), o: t, avecService: true })));
+      p.taches.forEach(t => h.push(ligneTableau({ classe: "ta", libelleHtml: echapper(t.libelle), o: t, nature: "Tâche", avecService: true })));
     });
     h.push("</tbody></table>");
   });
@@ -1554,7 +1555,7 @@ function etatHtml(etat, pourImpression){
     etat.orphelins.forEach(x => {
       const act = x.type === "action";
       h.push(ligneTableau({ classe: act ? "" : "", libelleHtml: echapper(x.libelle), o: x.o,
-        nature: act && x.o ? x.o.nature : "", millesime: act && x.o ? x.o.millesime : "",
+        nature: act ? (x.o ? x.o.nature : "") : "Tâche", millesime: act && x.o ? x.o.millesime : "",
         origine: "", avecService: true }));
     });
     h.push("</tbody></table>");
@@ -2605,7 +2606,9 @@ function ligneTableau(opts){
     h.push('<td class="c col-nat">' + echapper(opts.nature || "") + "</td>");
     h.push('<td class="c col-p2a">' + (opts.millesime
       ? '<span class="pastille-p2a">' + echapper(opts.millesime) + "</span>" : "") + "</td>");
-    h.push('<td class="c col-origine">' + (opts.origine ? pastilleOrigine(opts.origine) : "") + "</td>");
+    /* Origine sur deux lignes si besoin : coupure possible après chaque « _ ». */
+    h.push('<td class="c col-origine">' + (opts.origine
+      ? pastilleOrigine(opts.origine).replace(/>([^<]*)</, m => m.replace(/_/g, "_<wbr>")) : "") + "</td>");
   }
   if (opts.grpPorteur !== undefined) h.push('<td class="c txt">' + echapper(opts.grpPorteur) + "</td>");
   if (opts.avecPorteur) h.push('<td class="c col-porteur">' + echapper(o ? o.porteur : "") + "</td>");
@@ -2644,7 +2647,10 @@ function numeroAxe(libelle){
 }
 
 /* Regroupe les actions d'un projet par axe. Renvoie null si aucune action n'a d'axe
-   (affichage inchangé). Axes triés par numéro, « Sans axe » en dernier. */
+   (affichage inchangé). Axes par ordre alphabétique (nombres compris : 2 avant 10),
+   « Sans axe » en dernier. Pastille : numéro du libellé s'il en a un, sinon lettre
+   (Ⓐ, Ⓑ…) dans l'ordre d'affichage ; chaque axe a une couleur distincte. */
+const LETTRES = "ⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ";
 function groupesAxes(actions){
   if (!actions.some(x => x.noeud.a && x.noeud.a.axe)) return null;
   const m = new Map();
@@ -2653,21 +2659,34 @@ function groupesAxes(actions){
     if (!m.has(axe)) m.set(axe, []);
     m.get(axe).push(x);
   });
-  return Array.from(m.keys()).sort((a, b) => {
+  const groupes = Array.from(m.keys()).sort((a, b) => {
     if (!a) return 1;
     if (!b) return -1;
-    const na = numeroAxe(a), nb = numeroAxe(b);
-    if (na !== null && nb !== null && na !== nb) return na - nb;
-    if ((na === null) !== (nb === null)) return na === null ? 1 : -1;
-    return a.localeCompare(b, "fr", { numeric: true });
-  }).map(axe => {
-    const n = numeroAxe(axe);
-    return {
-      axe, numero: n,
-      couleur: !axe ? COULEUR_SANS_AXE : n ? COULEURS_AXES[(n - 1) % COULEURS_AXES.length] : COULEURS_AXES[0],
-      actions: m.get(axe)
-    };
+    return a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" });
+  }).map(axe => ({ axe, numero: numeroAxe(axe), actions: m.get(axe) }));
+  /* Couleurs : les axes numérotés prennent celle de leur numéro, les autres la suivante libre. */
+  const prises = new Set();
+  groupes.forEach(g => {
+    if (g.axe && g.numero){
+      g.couleur = COULEURS_AXES[(g.numero - 1) % COULEURS_AXES.length];
+      g.marque = g.numero <= 20 ? CERCLES[g.numero - 1] : String(g.numero);
+      prises.add(g.couleur);
+    }
   });
+  let lettre = 0, k = 0;
+  groupes.forEach(g => {
+    if (!g.axe){ g.couleur = COULEUR_SANS_AXE; g.marque = "–"; return; }
+    if (g.numero) return;
+    let c = null;
+    for (let t = 0; t < COULEURS_AXES.length; t++){
+      const cand = COULEURS_AXES[(k + t) % COULEURS_AXES.length];
+      if (!prises.has(cand)){ c = cand; k = (k + t + 1) % COULEURS_AXES.length; break; }
+    }
+    g.couleur = c || COULEURS_AXES[k++ % COULEURS_AXES.length];
+    prises.add(g.couleur);
+    g.marque = LETTRES[lettre++ % LETTRES.length];
+  });
+  return groupes;
 }
 
 /* Ligne d'en-tête d'axe : pastille numérotée, libellé, nombre d'actions et avancement moyen
@@ -2678,7 +2697,7 @@ function ligneAxe(g, nbCol){
   const moy = comptees.length
     ? Math.round(comptees.reduce((s, x) => s + x.noeud.a.pourcent, 0) / comptees.length) : null;
   const pastilleNum = '<span class="axe-num" style="background:' + g.couleur + '">'
-    + (g.numero && g.numero <= 20 ? CERCLES[g.numero - 1] : g.axe ? "•" : "–") + "</span>";
+    + g.marque + "</span>";
   return '<tr class="axe"><td colspan="' + nbCol + '" style="box-shadow:inset 3px 0 0 ' + g.couleur + '">'
     + pastilleNum + '<span class="axe-lib">' + echapper(g.axe || "Sans axe") + "</span>"
     + '<span class="axe-info"> — ' + n + " action" + (n > 1 ? "s" : "")
